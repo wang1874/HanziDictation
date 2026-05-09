@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "汉字听写",
+    "slug": "HanziDictation",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "hanzidictation",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFF8E7"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.hanzidictation"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFF8E7"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.example.hanzidictation"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+pluginManagement {
+  repositories {
+    google()
+    mavenCentral()
+    gradlePluginPortal()
+  }
+  includeBuild("../node_modules/@react-native/gradle-plugin/settings-plugin")
+  includeBuild("../node_modules/@react-native/gradle-plugin/react-native-gradle-plugin")
+  includeBuild("../node_modules/@react-native/gradle-plugin/shared")
+}
+
+plugins {
+  id("com.facebook.react.settings") version "0.81.5"
+}
+
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+  ex.autolinkLibrariesFromCommand()
+}
+
+rootProject.name = 'HanziDictation'
+
+include ':app'

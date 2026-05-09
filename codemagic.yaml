@@ -7,8 +7,11 @@ workflows:
       - name: Install npm dependencies
         script: |
           npm install
-      - name: Build Android APK using expo
+      - name: Generate Android project
         script: |
-          npx expo run:android --variant debug
+          npx expo prebuild --platform android --clean
+      - name: Build APK using Gradle
+        script: |
+          cd android && ./gradlew assembleDebug -x installDebug
     artifacts:
       - android/app/build/outputs/apk/debug/app-debug.apk

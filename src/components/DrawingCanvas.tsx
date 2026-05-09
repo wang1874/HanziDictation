@@ -16,7 +16,7 @@ interface DrawingCanvasProps {
   darkMode?: boolean;
 }
 
-export function DrawingCanvas({ onTextRecognized, darkMode = false }: DrawingCanvasProps) {
+const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onTextRecognized, darkMode = false }) => {
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -60,19 +60,7 @@ export function DrawingCanvas({ onTextRecognized, darkMode = false }: DrawingCan
     setCurrentStroke([]);
   }, [fadeAnim]);
 
-  const submitText = useCallback((text: string) => {
-    if (text.trim()) {
-      onTextRecognized(text);
-      clearCanvas();
-    }
-  }, [onTextRecognized, clearCanvas]);
-
   const renderStroke = (stroke: Stroke, index: number) => {
-    const pathD = stroke.points.reduce((path, point, i) => {
-      if (i === 0) return `M ${point.x} ${point.y}`;
-      return `${path} L ${point.x} ${point.y}`;
-    }, '');
-
     return (
       <View key={index} style={StyleSheet.absoluteFill}>
         {stroke.points.map((point, i) => (
@@ -165,7 +153,7 @@ export function DrawingCanvas({ onTextRecognized, darkMode = false }: DrawingCan
       {renderCurrentStroke()}
     </Animated.View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {

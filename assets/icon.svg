@@ -6,22 +6,16 @@
     </linearGradient>
   </defs>
 
-  <!-- 背景圆角矩形 -->
   <rect x="32" y="32" width="960" height="960" rx="160" ry="160" fill="url(#bg)"/>
 
-  <!-- 田字格外框 -->
   <rect x="162" y="162" width="700" height="700" rx="20" ry="20" fill="none" stroke="#8B0000" stroke-width="12"/>
 
-  <!-- 田字格竖线 -->
   <line x1="512" y1="162" x2="512" y2="862" stroke="#8B0000" stroke-width="6"/>
 
-  <!-- 田字格横线 -->
   <line x1="162" y1="512" x2="862" y2="512" stroke="#8B0000" stroke-width="6"/>
 
-  <!-- 示例汉字 "永" -->
-  <text x="512" y="620" font-family="STKaiti, KaiTi, serif" font-size="480" font-weight="bold" fill="#8B0000" text-anchor="middle" dominant-baseline="middle">永</text>
+  <text x="512" y="620" font-family="STKaiti, KaiTi, serif" font-size="480" font-weight="bold" fill="#8B0000" text-anchor="middle" dominant-baseline="middle">王</text>
 
-  <!-- 装饰线条 -->
   <circle cx="512" y="100" r="40" fill="#8B0000"/>
   <circle cx="512" y="924" r="40" fill="#8B0000"/>
 </svg>

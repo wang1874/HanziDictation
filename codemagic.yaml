@@ -1,0 +1,24 @@
+workflows:
+  android-workflow:
+    name: Android Build
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        - android_credentials
+      vars:
+        ANDROID_KEYSTORE_PATH: /tmp/keystore.keystore
+        ANDROID_KEYSTORE_PASSWORD: $CM_KEYSTORE_PASSWORD
+        ANDROID_KEY_ALIAS: $CM_KEY_ALIAS
+        ANDROID_KEY_PASSWORD: $CM_KEY_PASSWORD
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm install
+      - name: Build Android App
+        script: |
+          npx expo prebuild --platform android
+          cd android
+          ./gradlew assembleDebug
+    artifacts:
+      - android/app/build/outputs/apk/**/*.apk

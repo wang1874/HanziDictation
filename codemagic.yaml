@@ -13,11 +13,12 @@ workflows:
       - name: Expo export for Android
         script: |
           npx expo export --platform android
+          ls -la dist/
       - name: Copy bundle to assets
         script: |
           mkdir -p android/app/src/main/assets
-          cp dist/android-assets/index.android.bundle android/app/src/main/assets/
-          cp -r dist/android-assets/res/* android/app/src/main/res/
+          cp dist/index.android.bundle android/app/src/main/assets/ || cp dist/**/index.android.bundle android/app/src/main/assets/
+          cp -r dist/res/* android/app/src/main/res/ 2>/dev/null || true
       - name: Build Android Debug APK
         script: |
           cd android

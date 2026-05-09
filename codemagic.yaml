@@ -7,17 +7,8 @@ workflows:
       - name: Install npm dependencies
         script: |
           npm install
-      - name: Generate Android native project
+      - name: Build Android APK using expo
         script: |
-          npx expo prebuild --platform android --clean
-      - name: Create assets directory
-        script: |
-          mkdir -p android/app/src/main/assets
-      - name: Bundle JavaScript
-        script: |
-          npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
-      - name: Build Android Debug APK
-        script: |
-          cd android && ./gradlew assembleDebug
+          npx expo run:android --variant debug
     artifacts:
       - android/app/build/outputs/apk/debug/app-debug.apk

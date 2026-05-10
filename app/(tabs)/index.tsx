@@ -91,6 +91,14 @@ export default function DictationHome() {
         <Text style={styles.startButtonText}>开始听写</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={[styles.customButton, { borderColor: theme.primary }]}
+        onPress={() => router.push('/custom-dictation')}
+      >
+        <Text style={[styles.customButtonText, { color: theme.primary }]}>📝 自定义听写</Text>
+        <Text style={[styles.customButtonDesc, { color: theme.textSecondary }]}>输入想要听写的内容</Text>
+      </TouchableOpacity>
+
       {state.history.length > 0 && (
         <View style={styles.statsSection}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>最近统计</Text>
@@ -177,6 +185,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: FontSizes.large,
     fontWeight: 'bold',
+  },
+  customButton: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  customButtonText: {
+    fontSize: FontSizes.large,
+    fontWeight: '600',
+    marginBottom: Spacing.xs,
+  },
+  customButtonDesc: {
+    fontSize: FontSizes.small,
   },
   statsSection: {
     paddingHorizontal: Spacing.lg,

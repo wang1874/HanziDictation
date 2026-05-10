@@ -1,6 +1,6 @@
 workflows:
   android-workflow:
-    name: Android Build
+    name: Android Release Build
     max_build_duration: 60
     instance_type: mac_mini_m1
     scripts:
@@ -10,8 +10,16 @@ workflows:
       - name: Generate Android project
         script: |
           npx expo prebuild --platform android --clean
-      - name: Build APK using Gradle
+      - name: Create assets directory
         script: |
-          cd android && ./gradlew assembleDebug -x installDebug
+          mkdir -p android/app/src/main/assets
+      - name: Bundle JavaScript for production
+        script: |
+          npx expo export --platform android --dev false --output-dir dist
+          cp dist/index.android.bundle android/app/src/main/assets/
+          cp dist/assets/* android/app/src/main/assets/ 2>/dev/null || true
+      - name: Build Release APK
+        script: |
+          cd android && ./gradlew assembleRelease
     artifacts:
-      - android/app/build/outputs/apk/debug/app-debug.apk
+      - android/app/build/outputs/apk/release/app-release.apk

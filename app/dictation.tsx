@@ -9,9 +9,10 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useApp } from '../contexts/AppContext';
-import { useSpeech } from '../hooks/useSpeech';
-import DrawingCanvas from '../components/DrawingCanvas';
+import { useApp } from '../src/contexts/AppContext';
+import { useSpeech } from '../src/hooks/useSpeech';
+import DrawingCanvas from '../src/components/DrawingCanvas';
+import { getWordsByGrade, getSentences } from '../src/data/wordDatabase';
 
 type DictationMode = 'text' | 'handwriting';
 
@@ -21,47 +22,72 @@ export default function DictationPage() {
     type: string;
   }>();
   const { speak, stop } = useSpeech();
-  const { words, wrongWords, addWrongWord } = useApp();
 
   const [mode, setMode] = useState<DictationMode>('handwriting');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [knownWords, setKnownWords] = useState<number>(0);
+  const [dictationItems, setDictationItems] = useState<{
+    text: string;
+    pinyin: string;
+    example?: string;
+  }[]>([]);
 
-  const getCurrentWords = useCallback(() => {
+  const getCurrentItems = useCallback(() => {
     const gradeNum = parseInt(grade || '3', 10);
-    return words.filter((w) => w.grade === gradeNum);
-  }, [grade, words]);
-
-  const currentWords = getCurrentWords();
-
-  const speakCurrentWord = useCallback(() => {
-    if (currentWords.length > 0 && currentIndex < currentWords.length) {
-      speak(currentWords[currentIndex].character);
+    const typeValue = type || 'character';
+    
+    if (typeValue === 'sentence') {
+      const sentences = getSentences(gradeNum);
+      return sentences.map((s) => ({
+        text: s.text,
+        pinyin: s.pinyin,
+      }));
+    } else {
+      const words = getWordsByGrade(gradeNum);
+      return words.map((w) => ({
+        text: w.text,
+        pinyin: w.pinyin || '',
+        example: w.example,
+      }));
     }
-  }, [currentWords, currentIndex, speak]);
+  }, [grade, type]);
 
   useEffect(() => {
-    if (currentWords.length > 0) {
-      speakCurrentWord();
+    const items = getCurrentItems();
+    const shuffled = [...items].sort(() => Math.random() - 0.5);
+    setDictationItems(shuffled);
+  }, [getCurrentItems]);
+
+  const speakCurrentItem = useCallback(() => {
+    if (dictationItems.length > 0 && currentIndex < dictationItems.length) {
+      const item = dictationItems[currentIndex];
+      const toSpeak = item.example || item.text;
+      speak(toSpeak);
+    }
+  }, [dictationItems, currentIndex, speak]);
+
+  useEffect(() => {
+    if (dictationItems.length > 0) {
+      speakCurrentItem();
     }
     return () => {
       stop();
     };
-  }, [currentIndex, currentWords]);
+  }, [currentIndex, dictationItems]);
 
   const handleNext = useCallback(() => {
     setShowResult(false);
-    if (currentIndex < currentWords.length - 1) {
+    if (currentIndex < dictationItems.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
       Alert.alert(
         '听写完成',
-        `本次听写结束！你掌握了 ${knownWords} / ${currentWords.length} 个字`,
+        `本次听写结束！你掌握了 ${knownWords} / ${dictationItems.length} 个内容`,
         [{ text: '返回', onPress: () => router.back() }]
       );
     }
-  }, [currentIndex, currentWords.length, knownWords]);
+  }, [currentIndex, dictationItems.length, knownWords]);
 
   const handleShowResult = useCallback(() => {
     setShowResult(true);
@@ -73,17 +99,14 @@ export default function DictationPage() {
   }, [handleNext]);
 
   const handleWrong = useCallback(() => {
-    if (currentWords.length > 0 && currentIndex < currentWords.length) {
-      addWrongWord(currentWords[currentIndex]);
-    }
     handleNext();
-  }, [currentIndex, currentWords, addWrongWord, handleNext]);
+  }, [handleNext]);
 
   const handleReSpeak = useCallback(() => {
-    speakCurrentWord();
-  }, [speakCurrentWord]);
+    speakCurrentItem();
+  }, [speakCurrentItem]);
 
-  if (currentWords.length === 0) {
+  if (dictationItems.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
         <Text style={styles.emptyText}>暂无听写内容</Text>
@@ -91,14 +114,17 @@ export default function DictationPage() {
     );
   }
 
+  const currentItem = dictationItems[currentIndex];
+  const typeLabel = type === 'sentence' ? '句子' : type === 'word' ? '词语' : '单字';
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
-          {grade && type ? `${grade}年级${type === 'words' ? '词语' : '看拼音写汉字'}听写` : '听写练习'}
+          {grade && type ? `${grade}年级${typeLabel}听写` : '听写练习'}
         </Text>
         <Text style={styles.progress}>
-          第 {currentIndex + 1} / {currentWords.length} 题
+          第 {currentIndex + 1} / {dictationItems.length} 题
         </Text>
       </View>
 
@@ -125,14 +151,14 @@ export default function DictationPage() {
         <TouchableOpacity style={styles.speakButton} onPress={handleReSpeak}>
           <Text style={styles.speakButtonText}>🔊 再听一遍</Text>
         </TouchableOpacity>
+        {currentItem.example && (
+          <Text style={styles.hintText}>提示：{currentItem.example}</Text>
+        )}
       </View>
 
       {mode === 'handwriting' && (
         <View style={styles.canvasSection}>
-          <DrawingCanvas
-            onTextRecognized={() => {}}
-            darkMode={false}
-          />
+          <DrawingCanvas onTextRecognized={() => {}} />
         </View>
       )}
 
@@ -156,15 +182,11 @@ export default function DictationPage() {
       {showResult && (
         <View style={styles.resultSection}>
           <Text style={styles.resultLabel}>正确答案：</Text>
-          <Text style={styles.resultCharacter}>
-            {currentWords[currentIndex]?.character}
-          </Text>
-          <Text style={styles.resultPinyin}>
-            {currentWords[currentIndex]?.pinyin}
-          </Text>
-          <Text style={styles.resultMeaning}>
-            {currentWords[currentIndex]?.meaning}
-          </Text>
+          <Text style={styles.resultCharacter}>{currentItem.text}</Text>
+          <Text style={styles.resultPinyin}>{currentItem.pinyin}</Text>
+          {currentItem.example && (
+            <Text style={styles.resultExample}>例句：{currentItem.example}</Text>
+          )}
         </View>
       )}
 
@@ -222,6 +244,7 @@ const styles = StyleSheet.create({
   speakSection: {
     paddingHorizontal: 16,
     marginBottom: 16,
+    alignItems: 'center',
   },
   speakButton: {
     backgroundColor: '#FFE4C4',
@@ -230,11 +253,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#8B0000',
+    width: '100%',
   },
   speakButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#8B0000',
+  },
+  hintText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
   },
   canvasSection: {
     paddingHorizontal: 20,
@@ -297,20 +327,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   resultCharacter: {
-    fontSize: 72,
+    fontSize: 56,
     fontWeight: 'bold',
     color: '#8B0000',
     marginBottom: 8,
   },
   resultPinyin: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#666',
     marginBottom: 8,
   },
-  resultMeaning: {
-    fontSize: 16,
-    color: '#333',
-    textAlign: 'center',
+  resultExample: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   nextButton: {
     backgroundColor: '#FFE4C4',

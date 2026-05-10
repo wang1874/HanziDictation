@@ -14,26 +14,66 @@ import {
 import { router } from 'expo-router';
 import { useSpeech } from '../src/hooks/useSpeech';
 import DrawingCanvas from '../src/components/DrawingCanvas';
-import { Word } from '../src/types';
 
 type DictationMode = 'handwriting' | 'text';
+
+interface CustomWord {
+  text: string;
+  pinyin: string;
+}
+
+const pinyinMap: Record<string, string> = {
+  '一': 'yī', '二': 'èr', '三': 'sān', '四': 'sì', '五': 'wǔ',
+  '六': 'liù', '七': 'qī', '八': 'bā', '九': 'jiǔ', '十': 'shí',
+  '爸': 'bà', '妈': 'mā', '爷': 'yé', '奶': 'nǎi', '哥': 'gē',
+  '姐': 'jiě', '弟': 'dì', '妹': 'mèi', '土': 'tǔ', '地': 'dì',
+  '国': 'guó', '民': 'mín', '学': 'xué', '校': 'xiào', '师': 'shī',
+  '生': 'shēng', '本': 'běn', '书': 'shū', '字': 'zì', '文': 'wén',
+  '语': 'yǔ', '数': 'shù', '音': 'yīn', '乐': 'lè', '美': 'měi',
+  '天': 'tiān', '上': 'shàng', '下': 'xià', '大': 'dà', '小': 'xiǎo',
+  '人': 'rén', '中': 'zhōng', '口': 'kǒu', '手': 'shǒu', '日': 'rì',
+  '月': 'yuè', '水': 'shuǐ', '火': 'huǒ', '山': 'shān', '石': 'shí',
+  '田': 'tián', '禾': 'hé', '云': 'yún', '风': 'fēng', '雨': 'yǔ',
+  '春': 'chūn', '夏': 'xià', '秋': 'qiū', '冬': 'dōng', '花': 'huā',
+  '草': 'cǎo', '树': 'shù', '林': 'lín', '森': 'sēn', '鸟': 'niǎo',
+  '虫': 'chóng', '鱼': 'yú', '马': 'mǎ', '牛': 'niú', '羊': 'yáng',
+  '猪': 'zhū', '狗': 'gǒu', '猫': 'māo', '兔': 'tù', '飞': 'fēi',
+  '跑': 'pǎo', '跳': 'tiào', '游': 'yóu', '走': 'zǒu', '来': 'lái',
+  '去': 'qù', '看': 'kàn', '听': 'tīng', '说': 'shuō', '读': 'dú',
+};
 
 export default function CustomDictationPage() {
   const { speak, stop } = useSpeech();
   const [inputText, setInputText] = useState('');
-  const [words, setWords] = useState<string[]>([]);
+  const [words, setWords] = useState<CustomWord[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [mode, setMode] = useState<DictationMode>('handwriting');
   const [showResult, setShowResult] = useState(false);
   const [knownCount, setKnownCount] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
 
-  const parseWords = useCallback((text: string): string[] => {
+  const getPinyin = (text: string): string => {
+    let pinyin = '';
+    for (const char of text) {
+      if (pinyinMap[char]) {
+        pinyin += pinyinMap[char] + ' ';
+      } else {
+        pinyin += char + ' ';
+      }
+    }
+    return pinyin.trim();
+  };
+
+  const parseWords = useCallback((text: string): CustomWord[] => {
     const separators = /[,，、\s]+/;
     return text
       .split(separators)
       .map((w) => w.trim())
-      .filter((w) => w.length > 0);
+      .filter((w) => w.length > 0)
+      .map((w) => ({
+        text: w,
+        pinyin: getPinyin(w),
+      }));
   }, []);
 
   const handleStartDictation = useCallback(() => {
@@ -54,7 +94,7 @@ export default function CustomDictationPage() {
 
   const speakCurrentWord = useCallback(() => {
     if (words.length > 0 && currentIndex < words.length) {
-      speak(words[currentIndex]);
+      speak(words[currentIndex].text);
     }
   }, [words, currentIndex, speak]);
 
@@ -130,7 +170,7 @@ export default function CustomDictationPage() {
               <Text style={styles.previewLabel}>预览：</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <Text style={styles.previewText}>
-                  {parseWords(inputText).join(' | ') || '暂无内容'}
+                  {parseWords(inputText).map(w => w.text).join(' | ') || '暂无内容'}
                 </Text>
               </ScrollView>
             </View>
@@ -146,6 +186,8 @@ export default function CustomDictationPage() {
       </SafeAreaView>
     );
   }
+
+  const currentWord = words[currentIndex];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -208,7 +250,8 @@ export default function CustomDictationPage() {
       {showResult && (
         <View style={styles.resultSection}>
           <Text style={styles.resultLabel}>正确答案：</Text>
-          <Text style={styles.resultCharacter}>{words[currentIndex]}</Text>
+          <Text style={styles.resultCharacter}>{currentWord.text}</Text>
+          <Text style={styles.resultPinyin}>{currentWord.pinyin}</Text>
         </View>
       )}
 
@@ -410,6 +453,11 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: 'bold',
     color: '#8B0000',
+  },
+  resultPinyin: {
+    fontSize: 18,
+    color: '#666',
+    marginTop: 8,
   },
   nextButton: {
     backgroundColor: '#FFE4C4',

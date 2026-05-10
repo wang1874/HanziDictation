@@ -14,5 +14,6 @@
 
   <line x1="162" y1="512" x2="862" y2="512" stroke="#8B0000" stroke-width="6"/>
 
-  <text x="512" y="620" font-family="STKaiti, KaiTi, serif" font-size="480" font-weight="bold" fill="#8B0000" text-anchor="middle" dominant-baseline="middle">王</text>
+  <text x="512" y="440" font-family="STKaiti, KaiTi, serif" font-size="240" font-weight="bold" fill="#8B0000" text-anchor="middle" dominant-baseline="middle">听</text>
+  <text x="512" y="680" font-family="STKaiti, KaiTi, serif" font-size="240" font-weight="bold" fill="#8B0000" text-anchor="middle" dominant-baseline="middle">写</text>
 </svg>

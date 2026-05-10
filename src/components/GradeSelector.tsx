@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Colors, FontSizes, Spacing } from '../utils/theme';
 
 interface GradeSelectorProps {
   selectedGrade: number | null;
   onSelectGrade: (grade: number | null) => void;
   darkMode?: boolean;
+  showAll?: boolean;
 }
 
 const grades = [
@@ -18,14 +19,27 @@ const grades = [
   { value: 6, label: '六年级' },
 ];
 
-export function GradeSelector({ selectedGrade, onSelectGrade, darkMode = false }: GradeSelectorProps) {
+const singleGrades = [
+  { value: 1, label: '一年级' },
+  { value: 2, label: '二年级' },
+  { value: 3, label: '三年级' },
+  { value: 4, label: '四年级' },
+  { value: 5, label: '五年级' },
+  { value: 6, label: '六年级' },
+];
+
+export function GradeSelector({ selectedGrade, onSelectGrade, darkMode = false, showAll = false }: GradeSelectorProps) {
   const theme = darkMode ? Colors.dark : Colors.light;
+  const gradeList = showAll ? grades : singleGrades;
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.title, { color: theme.text }]}>选择年级</Text>
-      <View style={styles.grid}>
-        {grades.map((grade) => (
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {gradeList.map((grade) => (
           <TouchableOpacity
             key={grade.label}
             onPress={() => onSelectGrade(grade.value)}
@@ -49,23 +63,17 @@ export function GradeSelector({ selectedGrade, onSelectGrade, darkMode = false }
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: Spacing.md,
+    marginVertical: Spacing.sm,
   },
-  title: {
-    fontSize: FontSizes.large,
-    fontWeight: '600',
-    marginBottom: Spacing.md,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  scrollContent: {
+    paddingHorizontal: Spacing.sm,
     gap: Spacing.sm,
   },
   button: {
@@ -73,7 +81,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: 20,
     borderWidth: 1.5,
-    minWidth: 80,
+    minWidth: 70,
     alignItems: 'center',
   },
   buttonText: {

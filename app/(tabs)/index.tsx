@@ -1,127 +1,118 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useApp } from '../../src/contexts/AppContext';
-import { Colors, FontSizes, Spacing } from '../../src/utils/theme';
-import GradeSelector from '../../src/components/GradeSelector';
-import { DictationType } from '../../src/types';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  SafeAreaView,
+} from 'react-native';
+import { router } from 'expo-router';
+import { Colors, FontSizes, Spacing } from '../src/utils/theme';
+import GradeSelector from '../src/components/GradeSelector';
 
-const dictationTypes = [
-  { key: 'character' as DictationType, label: '单字听写', description: '练习单个汉字' },
-  { key: 'word' as DictationType, label: '词语听写', description: '练习词语拼写' },
-  { key: 'sentence' as DictationType, label: '句子听写', description: '练习完整句子' },
-];
+export default function HomePage() {
+  const [selectedGrade, setSelectedGrade] = useState<number>(3);
+  const theme = Colors.light;
 
-export default function DictationHome() {
-  const router = useRouter();
-  const { state, startSession } = useApp();
-  const { darkMode } = state.settings;
-  const theme = darkMode ? Colors.dark : Colors.light;
-
-  const [selectedType, setSelectedType] = useState<DictationType>('character');
-  const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
-
-  const handleStartDictation = () => {
-    startSession(selectedType, selectedGrade || undefined);
-
-    const params = new URLSearchParams();
-    params.set('type', selectedType);
-    if (selectedGrade) {
-      params.set('grade', selectedGrade.toString());
+  const handleGradeSelect = (grade: number | null) => {
+    if (grade !== null) {
+      setSelectedGrade(grade);
     }
-    router.push(`/dictation?${params.toString()}`);
+  };
+
+  const handleDictation = (mode: string) => {
+    router.push({
+      pathname: '/dictation',
+      params: { grade: selectedGrade.toString(), mode },
+    });
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.primary }]}>汉字听写</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          选择听写类型和年级，开始练习吧！
-        </Text>
+        <Text style={styles.title}>汉字听写</Text>
+        <Text style={styles.subtitle}>选择年级开始听写训练</Text>
       </View>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>听写类型</Text>
-        <View style={styles.typeGrid}>
-          {dictationTypes.map((type) => (
-            <TouchableOpacity
-              key={type.key}
-              onPress={() => setSelectedType(type.key)}
-              style={[
-                styles.typeCard,
-                {
-                  backgroundColor: selectedType === type.key ? theme.primary : theme.surface,
-                  borderColor: theme.primary,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.typeLabel,
-                  { color: selectedType === type.key ? '#FFFFFF' : theme.primary },
-                ]}
-              >
-                {type.label}
-              </Text>
-              <Text
-                style={[
-                  styles.typeDesc,
-                  { color: selectedType === type.key ? '#FFFFFF99' : theme.textSecondary },
-                ]}
-              >
-                {type.description}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+      <View style={styles.gradeSection}>
+        <GradeSelector
+          selectedGrade={selectedGrade}
+          onSelectGrade={handleGradeSelect}
+        />
       </View>
 
-      <GradeSelector
-        selectedGrade={selectedGrade}
-        onSelectGrade={setSelectedGrade}
-        darkMode={darkMode}
-      />
-
-      <TouchableOpacity
-        style={[styles.startButton, { backgroundColor: theme.primary }]}
-        onPress={handleStartDictation}
-      >
-        <Text style={styles.startButtonText}>开始听写</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.customButton, { borderColor: theme.primary }]}
-        onPress={() => router.push('/custom-dictation')}
-      >
-        <Text style={[styles.customButtonText, { color: theme.primary }]}>📝 自定义听写</Text>
-        <Text style={[styles.customButtonDesc, { color: theme.textSecondary }]}>输入想要听写的内容</Text>
-      </TouchableOpacity>
-
-      {state.history.length > 0 && (
-        <View style={styles.statsSection}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>最近统计</Text>
-          <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: theme.primary }]}>
-                {state.history.length}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-                总练习次数
+      <ScrollView style={styles.content}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📖 听写模式</Text>
+          
+          <TouchableOpacity
+            style={[styles.dictationCard, { backgroundColor: theme.surface, borderColor: theme.primary }]}
+            onPress={() => handleDictation('character')}
+          >
+            <View style={styles.cardIcon}>
+              <Text style={styles.cardEmoji}>字</Text>
+            </View>
+            <View style={styles.cardContent}>
+              <Text style={[styles.cardTitle, { color: theme.primary }]}>单字听写</Text>
+              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>
+                练习单个汉字的听写
               </Text>
             </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: theme.success }]}>
-                {state.wrongAnswers.length}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-                错字数
+            <Text style={styles.arrow}>→</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.dictationCard, { backgroundColor: theme.surface, borderColor: theme.primary }]}
+            onPress={() => handleDictation('word')}
+          >
+            <View style={styles.cardIcon}>
+              <Text style={styles.cardEmoji}>词</Text>
+            </View>
+            <View style={styles.cardContent}>
+              <Text style={[styles.cardTitle, { color: theme.primary }]}>词语听写</Text>
+              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>
+                练习词语的听写
               </Text>
             </View>
-          </View>
+            <Text style={styles.arrow}>→</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.dictationCard, { backgroundColor: theme.surface, borderColor: theme.primary }]}
+            onPress={() => handleDictation('sentence')}
+          >
+            <View style={styles.cardIcon}>
+              <Text style={styles.cardEmoji}>句</Text>
+            </View>
+            <View style={styles.cardContent}>
+              <Text style={[styles.cardTitle, { color: theme.primary }]}>句子听写</Text>
+              <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>
+                练习完整句子的听写
+              </Text>
+            </View>
+            <Text style={styles.arrow}>→</Text>
+          </TouchableOpacity>
         </View>
-      )}
-    </ScrollView>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>✨ 其他功能</Text>
+          
+          <TouchableOpacity
+            style={[styles.featureCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={() => router.push('/custom-dictation')}
+          >
+            <Text style={styles.featureEmoji}>📝</Text>
+            <View style={styles.featureContent}>
+              <Text style={[styles.featureTitle, { color: theme.text }]}>自定义听写</Text>
+              <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>
+                输入想听写的内容
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -131,96 +122,98 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: Spacing.lg,
+    backgroundColor: '#8B0000',
     alignItems: 'center',
   },
   title: {
-    fontSize: FontSizes.xxlarge,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: Spacing.sm,
+    color: '#FFF8E7',
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: FontSizes.medium,
-    textAlign: 'center',
+    color: '#FFE4C4',
+  },
+  gradeSection: {
+    padding: Spacing.md,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0D5C7',
+  },
+  content: {
+    flex: 1,
   },
   section: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
   },
   sectionTitle: {
     fontSize: FontSizes.large,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: Spacing.md,
   },
-  typeGrid: {
+  dictationCard: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: 12,
+    borderWidth: 2,
+    marginBottom: Spacing.md,
+    backgroundColor: '#FFF',
   },
-  typeCard: {
+  cardIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#8B0000',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  cardEmoji: {
+    fontSize: 24,
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+  cardContent: {
     flex: 1,
-    minWidth: '45%',
-    padding: Spacing.md,
-    borderRadius: 12,
-    borderWidth: 2,
-    alignItems: 'center',
   },
-  typeLabel: {
-    fontSize: FontSizes.large,
-    fontWeight: '600',
-    marginBottom: Spacing.xs,
-  },
-  typeDesc: {
-    fontSize: FontSizes.small,
-    textAlign: 'center',
-  },
-  startButton: {
-    marginHorizontal: Spacing.lg,
-    marginVertical: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  startButtonText: {
-    color: '#FFFFFF',
+  cardTitle: {
     fontSize: FontSizes.large,
     fontWeight: 'bold',
   },
-  customButton: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-    padding: Spacing.md,
-    borderRadius: 12,
-    borderWidth: 2,
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  customButtonText: {
-    fontSize: FontSizes.large,
-    fontWeight: '600',
-    marginBottom: Spacing.xs,
-  },
-  customButtonDesc: {
+  cardDesc: {
     fontSize: FontSizes.small,
+    marginTop: 2,
   },
-  statsSection: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.xl,
+  arrow: {
+    fontSize: 20,
+    color: '#8B0000',
+    fontWeight: 'bold',
   },
-  statsCard: {
+  featureCard: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: Spacing.lg,
-    borderRadius: 12,
-  },
-  statItem: {
     alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
+    backgroundColor: '#FFF',
   },
-  statValue: {
-    fontSize: FontSizes.xxlarge,
+  featureEmoji: {
+    fontSize: 32,
+    marginRight: Spacing.md,
+  },
+  featureContent: {
+    flex: 1,
+  },
+  featureTitle: {
+    fontSize: FontSizes.medium,
     fontWeight: 'bold',
   },
-  statLabel: {
+  featureDesc: {
     fontSize: FontSizes.small,
-    marginTop: Spacing.xs,
+    marginTop: 2,
   },
 });

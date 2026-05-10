@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import { router } from 'expo-router';
 import { useSpeech } from '../src/hooks/useSpeech';
 import DrawingCanvas from '../src/components/DrawingCanvas';
 
-type DictationMode = 'handwriting' | 'text';
+type InputMode = 'paper' | 'handwriting';
 
 interface CustomWord {
   text: string;
@@ -40,6 +40,10 @@ const pinyinMap: Record<string, string> = {
   '猪': 'zhū', '狗': 'gǒu', '猫': 'māo', '兔': 'tù', '飞': 'fēi',
   '跑': 'pǎo', '跳': 'tiào', '游': 'yóu', '走': 'zǒu', '来': 'lái',
   '去': 'qù', '看': 'kàn', '听': 'tīng', '说': 'shuō', '读': 'dú',
+  '爱': 'ài', '心': 'xīn', '思': 'sī', '想': 'xiǎng', '知': 'zhī',
+  '道': 'dào', '习': 'xí', '写': 'xiě', '词': 'cí', '作': 'zuò',
+  '堂': 'táng', '课': 'kè', '间': 'jiān', '时': 'shí', '年': 'nián',
+  '期': 'qī', '气': 'qì', '温': 'wēn', '暖': 'nuǎn', '凉': 'liáng',
 };
 
 export default function CustomDictationPage() {
@@ -47,7 +51,7 @@ export default function CustomDictationPage() {
   const [inputText, setInputText] = useState('');
   const [words, setWords] = useState<CustomWord[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [mode, setMode] = useState<DictationMode>('handwriting');
+  const [inputMode, setInputMode] = useState<InputMode>('paper');
   const [showResult, setShowResult] = useState(false);
   const [knownCount, setKnownCount] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
@@ -90,22 +94,23 @@ export default function CustomDictationPage() {
     setIsStarted(true);
     setCurrentIndex(0);
     setKnownCount(0);
+    setInputMode('paper');
   }, [inputText, parseWords]);
 
   const speakCurrentWord = useCallback(() => {
     if (words.length > 0 && currentIndex < words.length) {
-      speak(words[currentIndex].text);
+      const word = words[currentIndex];
+      const toSpeak = `${word.text}，${word.text}`;
+      speak(toSpeak);
     }
   }, [words, currentIndex, speak]);
 
-  useEffect(() => {
-    if (isStarted && words.length > 0) {
-      speakCurrentWord();
+  const handlePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setShowResult(false);
+      setCurrentIndex(currentIndex - 1);
     }
-    return () => {
-      stop();
-    };
-  }, [currentIndex, words, isStarted]);
+  }, [currentIndex]);
 
   const handleNext = useCallback(() => {
     setShowResult(false);
@@ -137,6 +142,15 @@ export default function CustomDictationPage() {
     stop();
     router.back();
   }, [stop]);
+
+  React.useEffect(() => {
+    if (isStarted && words.length > 0) {
+      speakCurrentWord();
+    }
+    return () => {
+      stop();
+    };
+  }, [currentIndex, words, isStarted]);
 
   if (!isStarted) {
     return (
@@ -199,21 +213,21 @@ export default function CustomDictationPage() {
         <Text style={styles.progress}>{currentIndex + 1}/{words.length}</Text>
       </View>
 
-      <View style={styles.modeSelector}>
+      <View style={styles.inputModeBar}>
         <TouchableOpacity
-          style={[styles.modeButton, mode === 'handwriting' && styles.modeButtonActive]}
-          onPress={() => setMode('handwriting')}
+          style={[styles.inputModeBtn, inputMode === 'paper' && styles.inputModeBtnActive]}
+          onPress={() => setInputMode('paper')}
         >
-          <Text style={[styles.modeText, mode === 'handwriting' && styles.modeTextActive]}>
-            纸上听写
+          <Text style={[styles.inputModeText, inputMode === 'paper' && styles.inputModeTextActive]}>
+            📝 纸上听写
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.modeButton, mode === 'text' && styles.modeButtonActive]}
-          onPress={() => setMode('text')}
+          style={[styles.inputModeBtn, inputMode === 'handwriting' && styles.inputModeBtnActive]}
+          onPress={() => setInputMode('handwriting')}
         >
-          <Text style={[styles.modeText, mode === 'text' && styles.modeTextActive]}>
-            文字输入
+          <Text style={[styles.inputModeText, inputMode === 'handwriting' && styles.inputModeTextActive]}>
+            ✍️ 屏幕手写
           </Text>
         </TouchableOpacity>
       </View>
@@ -224,40 +238,45 @@ export default function CustomDictationPage() {
         </TouchableOpacity>
       </View>
 
-      {mode === 'handwriting' && (
+      {inputMode === 'handwriting' && (
         <View style={styles.canvasSection}>
           <DrawingCanvas onTextRecognized={() => {}} />
         </View>
       )}
 
-      <View style={styles.actionButtons}>
-        {!showResult ? (
-          <TouchableOpacity style={styles.showResultButton} onPress={() => setShowResult(true)}>
-            <Text style={styles.showResultText}>显示答案</Text>
-          </TouchableOpacity>
-        ) : (
-          <>
+      <View style={styles.navButtons}>
+        <TouchableOpacity
+          style={[styles.navButton, currentIndex === 0 && styles.navButtonDisabled]}
+          onPress={handlePrev}
+          disabled={currentIndex === 0}
+        >
+          <Text style={[styles.navButtonText, currentIndex === 0 && styles.navButtonTextDisabled]}>
+            ← 上一个
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.showResultBtn} onPress={() => setShowResult(true)}>
+          <Text style={styles.showResultBtnText}>显示答案</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navButton} onPress={handleNext}>
+          <Text style={styles.navButtonText}>下一个 →</Text>
+        </TouchableOpacity>
+      </View>
+
+      {showResult && (
+        <View style={styles.resultSection}>
+          <Text style={styles.resultLabel}>正确答案</Text>
+          <Text style={styles.resultCharacter}>{currentWord.text}</Text>
+          <Text style={styles.resultPinyin}>{currentWord.pinyin}</Text>
+          <View style={styles.resultActions}>
             <TouchableOpacity style={styles.correctButton} onPress={handleCorrect}>
               <Text style={styles.correctText}>✓ 认识了</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.wrongButton} onPress={handleWrong}>
               <Text style={styles.wrongText}>✗ 不认识</Text>
             </TouchableOpacity>
-          </>
-        )}
-      </View>
-
-      {showResult && (
-        <View style={styles.resultSection}>
-          <Text style={styles.resultLabel}>正确答案：</Text>
-          <Text style={styles.resultCharacter}>{currentWord.text}</Text>
-          <Text style={styles.resultPinyin}>{currentWord.pinyin}</Text>
+          </View>
         </View>
       )}
-
-      <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-        <Text style={styles.nextButtonText}>下一个 →</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -347,91 +366,86 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  modeSelector: {
+  inputModeBar: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 12,
     gap: 12,
+    backgroundColor: '#FFF',
   },
-  modeButton: {
+  inputModeBtn: {
     flex: 1,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#FFF',
+    backgroundColor: '#FDF5E6',
     borderWidth: 2,
     borderColor: '#8B0000',
     alignItems: 'center',
   },
-  modeButtonActive: {
+  inputModeBtnActive: {
     backgroundColor: '#8B0000',
   },
-  modeText: {
+  inputModeText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#8B0000',
   },
-  modeTextActive: {
+  inputModeTextActive: {
     color: '#FFF',
   },
   speakSection: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    padding: 16,
   },
   speakButton: {
     backgroundColor: '#FFE4C4',
-    padding: 16,
+    padding: 20,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#8B0000',
   },
   speakButtonText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#8B0000',
   },
   canvasSection: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 16,
   },
-  actionButtons: {
+  navButtons: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 12,
-    marginBottom: 16,
   },
-  showResultButton: {
+  navButton: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#8B0000',
+  },
+  navButtonDisabled: {
+    opacity: 0.5,
+  },
+  navButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#8B0000',
+  },
+  navButtonTextDisabled: {
+    color: '#999',
+  },
+  showResultBtn: {
     flex: 1,
     backgroundColor: '#8B0000',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  showResultText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  correctButton: {
-    flex: 1,
-    backgroundColor: '#4CAF50',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  correctText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  wrongButton: {
-    flex: 1,
-    backgroundColor: '#F44336',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  wrongText: {
-    fontSize: 18,
+  showResultBtnText: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#FFF',
   },
@@ -445,7 +459,7 @@ const styles = StyleSheet.create({
     borderColor: '#8B0000',
   },
   resultLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#666',
     marginBottom: 8,
   },
@@ -458,19 +472,35 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#666',
     marginTop: 8,
+    marginBottom: 16,
   },
-  nextButton: {
-    backgroundColor: '#FFE4C4',
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
+  resultActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  correctButton: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#8B0000',
   },
-  nextButtonText: {
-    fontSize: 18,
+  correctText: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#8B0000',
+    color: '#FFF',
+  },
+  wrongButton: {
+    flex: 1,
+    backgroundColor: '#F44336',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  wrongText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFF',
   },
 });

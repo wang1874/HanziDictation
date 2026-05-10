@@ -9,55 +9,72 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useApp } from '../src/contexts/AppContext';
 import { useSpeech } from '../src/hooks/useSpeech';
 import DrawingCanvas from '../src/components/DrawingCanvas';
-import { getWordsByGrade, getSentences } from '../src/data/wordDatabase';
 
-type DictationMode = 'text' | 'handwriting';
+type DictationMode = 'character' | 'word' | 'sentence';
+type InputMode = 'paper' | 'handwriting';
 
 export default function DictationPage() {
-  const { grade, type } = useLocalSearchParams<{
+  const { grade, mode } = useLocalSearchParams<{
     grade: string;
-    type: string;
+    mode: string;
   }>();
-  const { speak, stop } = useSpeech();
+  const { speak, speakOnce, stop, setRepeatCount } = useSpeech();
 
-  const [mode, setMode] = useState<DictationMode>('handwriting');
+  const [dictationMode, setDictationMode] = useState<DictationMode>('character');
+  const [inputMode, setInputMode] = useState<InputMode>('paper');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [knownWords, setKnownWords] = useState<number>(0);
+  const [repeatCount, setRepeatCountState] = useState(2);
   const [dictationItems, setDictationItems] = useState<{
     text: string;
     pinyin: string;
-    example?: string;
+    example: string;
   }[]>([]);
 
-  const getCurrentItems = useCallback(() => {
-    const gradeNum = parseInt(grade || '3', 10);
-    const typeValue = type || 'character';
-    
-    if (typeValue === 'sentence') {
-      const sentences = getSentences(gradeNum);
-      return sentences.map((s) => ({
-        text: s.text,
-        pinyin: s.pinyin,
-      }));
-    } else {
-      const words = getWordsByGrade(gradeNum);
-      return words.map((w) => ({
-        text: w.text,
-        pinyin: w.pinyin || '',
-        example: w.example,
-      }));
-    }
-  }, [grade, type]);
-
   useEffect(() => {
-    const items = getCurrentItems();
-    const shuffled = [...items].sort(() => Math.random() - 0.5);
-    setDictationItems(shuffled);
-  }, [getCurrentItems]);
+    const loadData = async () => {
+      const gradeNum = parseInt(grade || '3', 10);
+      const modeValue = mode || 'character';
+      setDictationMode(modeValue as DictationMode);
+      setInputMode('paper');
+      setRepeatCount(repeatCount);
+      
+      let data: { text: string; pinyin: string; example: string }[] = [];
+      
+      const { getWordsByGrade, getSentences } = await import('../src/data/wordDatabase');
+      
+      if (modeValue === 'sentence') {
+        const sentences = getSentences(gradeNum);
+        data = sentences.map((s) => ({
+          text: s.text,
+          pinyin: s.pinyin,
+          example: s.text,
+        }));
+      } else if (modeValue === 'word') {
+        const words = getWordsByGrade(gradeNum).filter(w => w.type === 'word');
+        data = words.map((w) => ({
+          text: w.text,
+          pinyin: w.pinyin || '',
+          example: w.example || w.text,
+        }));
+      } else {
+        const words = getWordsByGrade(gradeNum).filter(w => w.type === 'character');
+        data = words.map((w) => ({
+          text: w.text,
+          pinyin: w.pinyin || '',
+          example: w.example || w.text,
+        }));
+      }
+      
+      const shuffled = [...data].sort(() => Math.random() - 0.5);
+      setDictationItems(shuffled);
+    };
+    
+    loadData();
+  }, [grade, mode, repeatCount]);
 
   const speakCurrentItem = useCallback(() => {
     if (dictationItems.length > 0 && currentIndex < dictationItems.length) {
@@ -75,6 +92,13 @@ export default function DictationPage() {
       stop();
     };
   }, [currentIndex, dictationItems]);
+
+  const handlePrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setShowResult(false);
+      setCurrentIndex(currentIndex - 1);
+    }
+  }, [currentIndex]);
 
   const handleNext = useCallback(() => {
     setShowResult(false);
@@ -106,6 +130,15 @@ export default function DictationPage() {
     speakCurrentItem();
   }, [speakCurrentItem]);
 
+  const getModeLabel = () => {
+    switch (dictationMode) {
+      case 'character': return '单字听写';
+      case 'word': return '词语听写';
+      case 'sentence': return '句子听写';
+      default: return '听写';
+    }
+  };
+
   if (dictationItems.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
@@ -115,84 +148,87 @@ export default function DictationPage() {
   }
 
   const currentItem = dictationItems[currentIndex];
-  const typeLabel = type === 'sentence' ? '句子' : type === 'word' ? '词语' : '单字';
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>
-          {grade && type ? `${grade}年级${typeLabel}听写` : '听写练习'}
-        </Text>
-        <Text style={styles.progress}>
-          第 {currentIndex + 1} / {dictationItems.length} 题
-        </Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backText}>← 返回</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{grade}年级{getModeLabel()}</Text>
+        <View style={styles.placeholder} />
       </View>
 
-      <View style={styles.modeSelector}>
+      <View style={styles.inputModeBar}>
         <TouchableOpacity
-          style={[styles.modeButton, mode === 'handwriting' && styles.modeButtonActive]}
-          onPress={() => setMode('handwriting')}
+          style={[styles.inputModeBtn, inputMode === 'paper' && styles.inputModeBtnActive]}
+          onPress={() => setInputMode('paper')}
         >
-          <Text style={[styles.modeText, mode === 'handwriting' && styles.modeTextActive]}>
-            纸上听写
+          <Text style={[styles.inputModeText, inputMode === 'paper' && styles.inputModeTextActive]}>
+            📝 纸上听写
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.modeButton, mode === 'text' && styles.modeButtonActive]}
-          onPress={() => setMode('text')}
+          style={[styles.inputModeBtn, inputMode === 'handwriting' && styles.inputModeBtnActive]}
+          onPress={() => setInputMode('handwriting')}
         >
-          <Text style={[styles.modeText, mode === 'text' && styles.modeTextActive]}>
-            文字输入
+          <Text style={[styles.inputModeText, inputMode === 'handwriting' && styles.inputModeTextActive]}>
+            ✍️ 屏幕手写
           </Text>
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.progressBar}>
+        <Text style={styles.progressText}>
+          第 {currentIndex + 1} / {dictationItems.length} 题
+        </Text>
       </View>
 
       <View style={styles.speakSection}>
         <TouchableOpacity style={styles.speakButton} onPress={handleReSpeak}>
           <Text style={styles.speakButtonText}>🔊 再听一遍</Text>
         </TouchableOpacity>
-        {currentItem.example && (
-          <Text style={styles.hintText}>提示：{currentItem.example}</Text>
-        )}
       </View>
 
-      {mode === 'handwriting' && (
+      {inputMode === 'handwriting' && (
         <View style={styles.canvasSection}>
           <DrawingCanvas onTextRecognized={() => {}} />
         </View>
       )}
 
-      <View style={styles.actionButtons}>
-        {!showResult ? (
-          <TouchableOpacity style={styles.showResultButton} onPress={handleShowResult}>
-            <Text style={styles.showResultText}>显示答案</Text>
-          </TouchableOpacity>
-        ) : (
-          <>
+      <View style={styles.navButtons}>
+        <TouchableOpacity
+          style={[styles.navButton, currentIndex === 0 && styles.navButtonDisabled]}
+          onPress={handlePrev}
+          disabled={currentIndex === 0}
+        >
+          <Text style={[styles.navButtonText, currentIndex === 0 && styles.navButtonTextDisabled]}>
+            ← 上一个
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.showResultBtn} onPress={handleShowResult}>
+          <Text style={styles.showResultBtnText}>显示答案</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navButton} onPress={handleNext}>
+          <Text style={styles.navButtonText}>下一个 →</Text>
+        </TouchableOpacity>
+      </View>
+
+      {showResult && (
+        <View style={styles.resultSection}>
+          <Text style={styles.resultLabel}>正确答案</Text>
+          <Text style={styles.resultCharacter}>{currentItem.text}</Text>
+          <Text style={styles.resultPinyin}>{currentItem.pinyin}</Text>
+          <View style={styles.resultActions}>
             <TouchableOpacity style={styles.correctButton} onPress={handleCorrect}>
               <Text style={styles.correctText}>✓ 认识了</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.wrongButton} onPress={handleWrong}>
               <Text style={styles.wrongText}>✗ 不认识</Text>
             </TouchableOpacity>
-          </>
-        )}
-      </View>
-
-      {showResult && (
-        <View style={styles.resultSection}>
-          <Text style={styles.resultLabel}>正确答案：</Text>
-          <Text style={styles.resultCharacter}>{currentItem.text}</Text>
-          <Text style={styles.resultPinyin}>{currentItem.pinyin}</Text>
-          {currentItem.example && (
-            <Text style={styles.resultExample}>例句：{currentItem.example}</Text>
-          )}
+          </View>
         </View>
       )}
-
-      <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-        <Text style={styles.nextButtonText}>下一个 →</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -203,112 +239,117 @@ const styles = StyleSheet.create({
     backgroundColor: '#FDF5E6',
   },
   header: {
-    padding: 20,
+    padding: 16,
     backgroundColor: '#8B0000',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backBtn: {
+    padding: 4,
+  },
+  backText: {
+    color: '#FFF8E7',
+    fontSize: 16,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
     color: '#FFF8E7',
-    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
-  progress: {
-    fontSize: 14,
-    color: '#FFE4C4',
+  placeholder: {
+    width: 60,
   },
-  modeSelector: {
+  inputModeBar: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 12,
     gap: 12,
+    backgroundColor: '#FFF',
   },
-  modeButton: {
+  inputModeBtn: {
     flex: 1,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#FFF',
+    backgroundColor: '#FDF5E6',
     borderWidth: 2,
     borderColor: '#8B0000',
     alignItems: 'center',
   },
-  modeButtonActive: {
+  inputModeBtnActive: {
     backgroundColor: '#8B0000',
   },
-  modeText: {
+  inputModeText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#8B0000',
   },
-  modeTextActive: {
+  inputModeTextActive: {
     color: '#FFF',
   },
-  speakSection: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+  progressBar: {
+    padding: 12,
     alignItems: 'center',
+    backgroundColor: '#FFF8E7',
+  },
+  progressText: {
+    fontSize: 16,
+    color: '#8B0000',
+    fontWeight: 'bold',
+  },
+  speakSection: {
+    padding: 16,
   },
   speakButton: {
     backgroundColor: '#FFE4C4',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#8B0000',
+  },
+  speakButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#8B0000',
+  },
+  canvasSection: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  navButtons: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  navButton: {
+    flex: 1,
+    backgroundColor: '#FFF',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#8B0000',
-    width: '100%',
   },
-  speakButtonText: {
-    fontSize: 18,
+  navButtonDisabled: {
+    opacity: 0.5,
+  },
+  navButtonText: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#8B0000',
   },
-  hintText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
+  navButtonTextDisabled: {
+    color: '#999',
   },
-  canvasSection: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 12,
-    marginBottom: 16,
-  },
-  showResultButton: {
+  showResultBtn: {
     flex: 1,
     backgroundColor: '#8B0000',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  showResultText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  correctButton: {
-    flex: 1,
-    backgroundColor: '#4CAF50',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  correctText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  wrongButton: {
-    flex: 1,
-    backgroundColor: '#F44336',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  wrongText: {
-    fontSize: 18,
+  showResultBtnText: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#FFF',
   },
@@ -322,7 +363,7 @@ const styles = StyleSheet.create({
     borderColor: '#8B0000',
   },
   resultLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#666',
     marginBottom: 8,
   },
@@ -330,32 +371,41 @@ const styles = StyleSheet.create({
     fontSize: 56,
     fontWeight: 'bold',
     color: '#8B0000',
-    marginBottom: 8,
   },
   resultPinyin: {
     fontSize: 18,
     color: '#666',
-    marginBottom: 8,
-  },
-  resultExample: {
-    fontSize: 14,
-    color: '#999',
     marginTop: 8,
-    fontStyle: 'italic',
+    marginBottom: 16,
   },
-  nextButton: {
-    backgroundColor: '#FFE4C4',
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
+  resultActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  correctButton: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#8B0000',
   },
-  nextButtonText: {
-    fontSize: 18,
+  correctText: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#8B0000',
+    color: '#FFF',
+  },
+  wrongButton: {
+    flex: 1,
+    backgroundColor: '#F44336',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  wrongText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFF',
   },
   emptyText: {
     flex: 1,

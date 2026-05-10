@@ -6,15 +6,19 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
+  Alert,
 } from 'react-native';
+import { router } from 'expo-router';
 import { useApp } from '../../src/contexts/AppContext';
 import WordCard from '../../src/components/WordCard';
 import GradeSelector from '../../src/components/GradeSelector';
-import { router } from 'expo-router';
+import { getWordsByGrade } from '../../src/data/wordDatabase';
+import { Word } from '../../src/types';
 
 export default function PracticePage() {
-  const { words, speak } = useApp();
+  const { speak } = useApp();
   const [selectedGrade, setSelectedGrade] = useState<number>(1);
+  const [showPinyin, setShowPinyin] = useState(true);
 
   const handleGradeSelect = (grade: number | null) => {
     if (grade !== null) {
@@ -22,14 +26,14 @@ export default function PracticePage() {
     }
   };
 
-  const filteredWords = words.filter((w) => w.grade === selectedGrade);
-
   const handleSpeak = useCallback(
     (text: string) => {
       speak(text);
     },
     [speak]
   );
+
+  const words = getWordsByGrade(selectedGrade);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -45,25 +49,37 @@ export default function PracticePage() {
         />
       </View>
 
+      <View style={styles.toggleRow}>
+        <Text style={styles.toggleLabel}>显示拼音：</Text>
+        <TouchableOpacity
+          style={[styles.toggleBtn, showPinyin && styles.toggleBtnActive]}
+          onPress={() => setShowPinyin(!showPinyin)}
+        >
+          <Text style={[styles.toggleText, showPinyin && styles.toggleTextActive]}>
+            {showPinyin ? '是' : '否'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.statsBar}>
         <Text style={styles.statsText}>
-          共 {filteredWords.length} 个汉字
+          {selectedGrade}年级 共 {words.length} 个内容
         </Text>
       </View>
 
       <ScrollView style={styles.wordList}>
         <View style={styles.wordGrid}>
-          {filteredWords.map((word, index) => (
+          {words.slice(0, 30).map((word, index) => (
             <WordCard
-              key={`${word.text}-${index}`}
-              word={word}
+              key={`${word.id}-${index}`}
+              word={{ ...word }}
               onSpeak={handleSpeak}
             />
           ))}
         </View>
-        {filteredWords.length === 0 && (
+        {words.length === 0 && (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>该年级暂无汉字</Text>
+            <Text style={styles.emptyText}>该年级暂无内容</Text>
           </View>
         )}
       </ScrollView>
@@ -91,10 +107,38 @@ const styles = StyleSheet.create({
     color: '#FFE4C4',
   },
   gradeSection: {
-    padding: 16,
+    padding: 12,
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E0D5C7',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#FFF',
+  },
+  toggleLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginRight: 12,
+  },
+  toggleBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#E0D5C7',
+  },
+  toggleBtnActive: {
+    backgroundColor: '#8B0000',
+  },
+  toggleText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  toggleTextActive: {
+    color: '#FFF',
   },
   statsBar: {
     paddingHorizontal: 16,

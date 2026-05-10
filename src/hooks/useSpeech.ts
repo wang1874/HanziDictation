@@ -1,8 +1,34 @@
 import * as Speech from 'expo-speech';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 
 export const useSpeech = () => {
+  const repeatCountRef = useRef(2);
+  
+  const setRepeatCount = useCallback((count: number) => {
+    repeatCountRef.current = count;
+  }, []);
+
   const speak = useCallback(async (text: string) => {
+    try {
+      if (await Speech.isSpeakingAsync()) {
+        await Speech.stop();
+      }
+      
+      const count = repeatCountRef.current;
+      for (let i = 0; i < count; i++) {
+        Speech.speak(text, {
+          language: 'zh-CN',
+          pitch: 1.0,
+          rate: 0.85,
+        });
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+    } catch (error) {
+      console.error('Speech error:', error);
+    }
+  }, []);
+
+  const speakOnce = useCallback(async (text: string) => {
     try {
       if (await Speech.isSpeakingAsync()) {
         await Speech.stop();
@@ -12,9 +38,6 @@ export const useSpeech = () => {
         language: 'zh-CN',
         pitch: 1.0,
         rate: 0.85,
-        onError: (error) => {
-          console.error('Speech error:', error);
-        },
       });
     } catch (error) {
       console.error('Speech error:', error);
@@ -29,5 +52,5 @@ export const useSpeech = () => {
     }
   }, []);
 
-  return { speak, stop };
+  return { speak, speakOnce, stop, setRepeatCount };
 };

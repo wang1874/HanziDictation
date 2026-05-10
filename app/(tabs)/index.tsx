@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { useApp } from '../../src/contexts/AppContext';
 import { Colors, FontSizes, Spacing } from '../../src/utils/theme';
 import GradeSelector from '../../src/components/GradeSelector';
-import { getRandomWords, getRandomSentences, sentenceData } from '../../src/data/wordDatabase';
 import { DictationType } from '../../src/types';
 
 const dictationTypes = [

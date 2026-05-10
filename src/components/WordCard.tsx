@@ -1,22 +1,33 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors, FontSizes, Spacing } from '../utils/theme';
+import { Word } from '../types';
 
 interface WordCardProps {
-  text: string;
+  word: Word;
   isCorrect?: boolean;
   showResult?: boolean;
+  onSpeak?: (text: string) => void;
   onPress?: () => void;
   darkMode?: boolean;
 }
 
-export function WordCard({ text, isCorrect, showResult = false, onPress, darkMode = false }: WordCardProps) {
+export function WordCard({ word, isCorrect, showResult = false, onSpeak, onPress, darkMode = false }: WordCardProps) {
   const theme = darkMode ? Colors.dark : Colors.light;
+
+  const handlePress = () => {
+    if (onSpeak) {
+      onSpeak(word.text);
+    }
+    if (onPress) {
+      onPress();
+    }
+  };
 
   return (
     <TouchableOpacity
-      onPress={onPress}
-      disabled={!onPress}
+      onPress={handlePress}
+      disabled={!onSpeak && !onPress}
       style={[
         styles.container,
         {
@@ -42,8 +53,13 @@ export function WordCard({ text, isCorrect, showResult = false, onPress, darkMod
           },
         ]}
       >
-        {text}
+        {word.text}
       </Text>
+      {word.pinyin && (
+        <Text style={[styles.pinyin, { color: theme.textSecondary }]}>
+          {word.pinyin}
+        </Text>
+      )}
       {showResult && (
         <Text
           style={[
@@ -62,17 +78,22 @@ export function WordCard({ text, isCorrect, showResult = false, onPress, darkMod
 
 const styles = StyleSheet.create({
   container: {
-    padding: Spacing.lg,
-    borderRadius: 16,
+    padding: Spacing.md,
+    borderRadius: 12,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 120,
-    minHeight: 120,
+    minWidth: 100,
+    minHeight: 100,
+    margin: 4,
   },
   text: {
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  pinyin: {
+    fontSize: FontSizes.small,
+    marginTop: 4,
   },
   resultText: {
     fontSize: FontSizes.medium,

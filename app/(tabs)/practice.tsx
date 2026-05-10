@@ -7,9 +7,9 @@ import {
   ScrollView,
   SafeAreaView,
 } from 'react-native';
-import { useApp } from '../../contexts/AppContext';
-import WordCard from '../../components/WordCard';
-import GradeSelector from '../../components/GradeSelector';
+import { useApp } from '../../src/contexts/AppContext';
+import WordCard from '../../src/components/WordCard';
+import GradeSelector from '../../src/components/GradeSelector';
 import { router } from 'expo-router';
 
 export default function PracticePage() {
@@ -55,7 +55,7 @@ export default function PracticePage() {
         <View style={styles.wordGrid}>
           {filteredWords.map((word, index) => (
             <WordCard
-              key={`${word.character}-${index}`}
+              key={`${word.text}-${index}`}
               word={word}
               onSpeak={handleSpeak}
             />

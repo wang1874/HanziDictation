@@ -1,19 +1,18 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
   SafeAreaView,
 } from 'react-native';
-import { useApp } from '../../src/contexts/AppContext';
 import WordCard from '../../src/components/WordCard';
 import GradeSelector from '../../src/components/GradeSelector';
 import { getWordsByGrade } from '../../src/data/wordDatabase';
+import { useSpeech } from '../../src/hooks/useSpeech';
 
 export default function PracticePage() {
-  const { speak } = useApp();
+  const { speak } = useSpeech();
   const [selectedGrade, setSelectedGrade] = useState<number>(1);
 
   const handleGradeSelect = (grade: number | null) => {
@@ -22,12 +21,9 @@ export default function PracticePage() {
     }
   };
 
-  const handleSpeak = useCallback(
-    (text: string) => {
-      speak(text);
-    },
-    [speak]
-  );
+  const handleSpeak = (text: string) => {
+    speak(text);
+  };
 
   const words = getWordsByGrade(selectedGrade);
 

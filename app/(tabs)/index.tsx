@@ -8,8 +8,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Colors, FontSizes, Spacing } from '../src/utils/theme';
-import GradeSelector from '../src/components/GradeSelector';
+import { Colors, FontSizes, Spacing } from '../../src/utils/theme';
+import GradeSelector from '../../src/components/GradeSelector';
 
 export default function HomePage() {
   const [selectedGrade, setSelectedGrade] = useState<number>(3);

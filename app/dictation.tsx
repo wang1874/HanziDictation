@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Alert,
   SafeAreaView,
 } from 'react-native';
@@ -20,14 +19,14 @@ export default function DictationPage() {
     grade: string;
     mode: string;
   }>();
-  const { speak, speakOnce, stop, setRepeatCount } = useSpeech();
+  const { speak, stop, setRepeatCount } = useSpeech();
 
   const [dictationMode, setDictationMode] = useState<DictationMode>('character');
   const [inputMode, setInputMode] = useState<InputMode>('paper');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [knownWords, setKnownWords] = useState<number>(0);
-  const [repeatCount, setRepeatCountState] = useState(2);
+  const [repeatCount] = useState(2);
   const [dictationItems, setDictationItems] = useState<{
     text: string;
     pinyin: string;
@@ -74,7 +73,7 @@ export default function DictationPage() {
     };
     
     loadData();
-  }, [grade, mode, repeatCount]);
+  }, [grade, mode, repeatCount, setRepeatCount]);
 
   const speakCurrentItem = useCallback(() => {
     if (dictationItems.length > 0 && currentIndex < dictationItems.length) {

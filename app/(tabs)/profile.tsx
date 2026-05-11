@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
 import { useApp } from '../../src/contexts/AppContext';
 import { Colors, FontSizes, Spacing } from '../../src/utils/theme';
 
@@ -21,7 +21,6 @@ export default function ProfileScreen() {
   };
 
   const handleClearHistory = () => {
-    const { Alert } = require('react-native');
     Alert.alert(
       '清空历史',
       '确定要清空所有听写历史记录吗？',

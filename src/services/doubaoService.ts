@@ -2,6 +2,7 @@ import { Audio } from 'expo-av';
 
 const API_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 const DEFAULT_MODEL = 'ep-20241213164445-pk5jx';
+const TTS_MODEL = 'Doubao-TTS-2.0';
 
 interface DoubaoConfig {
   apiKey?: string;
@@ -16,19 +17,6 @@ let config: DoubaoConfig = {
 export function configureDoubao(newConfig: DoubaoConfig) {
   config = { ...config, ...newConfig };
 }
-
-const COMMON_WORDS = [
-  '的', '一', '是', '在', '不', '了', '有', '和', '人', '这',
-  '中', '大', '为', '上', '个', '国', '我', '以', '要', '他',
-  '时', '来', '用', '们', '生', '到', '作', '地', '于', '出',
-  '就', '分', '对', '成', '会', '可', '主', '发', '年', '动',
-  '同', '工', '也', '能', '下', '过', '子', '说', '种', '面',
-  '而', '方', '后', '多', '定', '行', '学', '法', '所', '民',
-  '得', '经', '十', '三', '之', '进', '着', '等', '部', '度',
-  '家', '电', '力', '里', '如', '水', '化', '高', '自', '二',
-  '理', '起', '小', '物', '现', '实', '加', '量', '都', '两',
-  '体', '制', '机', '当', '使', '点', '从', '业', '本', '去'
-];
 
 const SENTENCE_TEMPLATES = [
   '{word}，今天我们学习{word}',
@@ -56,7 +44,7 @@ const WORD_SENTENCE_TEMPLATES = [
   '{word}，{word}可以这样用'
 ];
 
-const INTELLIGENT_SENTENCES: Record<string, string> = {
+const FALLBACK_SENTENCES: Record<string, string> = {
   '天': '天，今天的天气真好',
   '地': '地，地上有一只小蚂蚁',
   '人': '人，我们都是中国人',
@@ -112,7 +100,7 @@ const INTELLIGENT_SENTENCES: Record<string, string> = {
   '狗': '狗，狗是人类的朋友',
   '猫': '猫，小猫在睡觉',
   '兔': '兔，兔子很可爱',
-  '爱': '爱，我爱爸爸妈',
+  '爱': '爱，我爱爸爸妈妈',
   '心': '心，我们要用心学习',
   '思': '思，我在思考问题',
   '想': '想，我想念奶奶',
@@ -144,49 +132,48 @@ export async function generateDictationExample(
   word: string,
   grade?: number
 ): Promise<string> {
+  if (!config.apiKey) {
+    console.log('未配置豆包API Key，使用本地例句');
+    return getFallbackExample(word);
+  }
+
   try {
-    if (INTELLIGENT_SENTENCES[word]) {
-      return INTELLIGENT_SENTENCES[word];
-    }
+    const prompt = buildPrompt(word, grade);
+    const response = await fetch(`${API_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [
+          {
+            role: 'system',
+            content: '你是一个专业的小学语文老师。请为学生生成适合听写的例句。格式要求：字/词，例句。例子：国，我们的国家很美丽。'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 50,
+      }),
+    });
 
-    if (config.apiKey) {
-      const prompt = buildPrompt(word, grade);
-      const response = await fetch(`${API_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: config.model,
-          messages: [
-            {
-              role: 'system',
-              content: '你是一个专业的小学语文老师。请为学生生成适合听写的例句。格式要求：字/词，例句。例子：国，我们的国家很美丽。'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 50,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const aiExample = data.choices?.[0]?.message?.content?.trim();
-        if (aiExample) {
-          return formatExample(aiExample, word);
-        }
+    if (response.ok) {
+      const data = await response.json();
+      const aiExample = data.choices?.[0]?.message?.content?.trim();
+      if (aiExample && isValidExample(aiExample)) {
+        return formatExample(aiExample, word);
       }
     }
   } catch (error) {
-    console.error('豆包API调用失败:', error);
+    console.error('豆包API调用失败，使用本地例句:', error);
   }
 
-  return generateSmartExample(word);
+  return getFallbackExample(word);
 }
 
 function buildPrompt(word: string, grade?: number): string {
@@ -196,6 +183,10 @@ function buildPrompt(word: string, grade?: number): string {
   } else {
     return `请为词语"${word}"${gradeText}生成一个简单的听写例句。格式：${word}，简单句。例子：学校，我们的学校很美丽。`;
   }
+}
+
+function isValidExample(example: string): boolean {
+  return example.length > 2 && example.includes('，');
 }
 
 function formatExample(example: string, word: string): string {
@@ -215,10 +206,14 @@ function formatExample(example: string, word: string): string {
     }
   }
   
-  return generateSmartExample(word);
+  return getFallbackExample(word);
 }
 
-function generateSmartExample(word: string): string {
+function getFallbackExample(word: string): string {
+  if (FALLBACK_SENTENCES[word]) {
+    return FALLBACK_SENTENCES[word];
+  }
+  
   if (word.length === 1) {
     const template = SENTENCE_TEMPLATES[Math.floor(Math.random() * SENTENCE_TEMPLATES.length)];
     return template.replace(/{word}/g, word);
@@ -229,8 +224,61 @@ function generateSmartExample(word: string): string {
 }
 
 export async function speakWithDoubao(text: string): Promise<void> {
-  console.log('豆包TTS暂未完全配置，使用系统语音:', text);
-  throw new Error('TTS API未配置');
+  if (!config.apiKey) {
+    console.log('未配置豆包API Key，使用系统语音');
+    throw new Error('API Key未配置');
+  }
+
+  try {
+    const cacheKey = `tts_${text}`;
+    
+    if (audioCache.has(cacheKey)) {
+      const sound = audioCache.get(cacheKey);
+      if (sound) {
+        await sound.replayAsync();
+        return;
+      }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/audio/speech`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: TTS_MODEL,
+        input: text,
+        voice: 'zh_female_qingxin',
+        response_format: 'mp3',
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`TTS请求失败: ${response.status}`);
+      throw new Error(`TTS请求失败: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const uri = URL.createObjectURL(blob);
+    
+    const { sound } = await Audio.Sound.createAsync(
+      { uri },
+      { shouldPlay: true }
+    );
+    
+    audioCache.set(cacheKey, sound);
+    
+    sound.setOnPlaybackStatusUpdate((status) => {
+      if (status.didJustFinish) {
+        sound.unloadAsync();
+      }
+    });
+
+  } catch (error) {
+    console.error('豆包TTS失败，使用本地语音:', error);
+    throw error;
+  }
 }
 
 export function clearAudioCache() {

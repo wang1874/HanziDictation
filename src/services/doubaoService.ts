@@ -15,19 +15,6 @@ export function configureDoubao(newConfig: DoubaoConfig) {
   config = { ...config, ...newConfig };
 }
 
-const SENTENCE_TEMPLATES = [
-  '{word}，今天我们学习{word}',
-  '{word}，{word}是一个生字',
-  '{word}，{word}这个字很重要',
-  '{word}，请写三遍{word}',
-];
-
-const WORD_SENTENCE_TEMPLATES = [
-  '{word}，{word}是一个词语',
-  '{word}，我们要掌握{word}',
-  '{word}，{word}在文中的意思',
-];
-
 const FALLBACK_SENTENCES: Record<string, string> = {
   '天': '天，今天的天气真好',
   '地': '地，地上有一只小蚂蚁',
@@ -50,16 +37,13 @@ const FALLBACK_SENTENCES: Record<string, string> = {
   '坚持': '坚持，坚持就是胜利',
 };
 
-export async function generateDictationExample(
-  word: string,
-  grade?: number
-): Promise<string> {
+export async function generateDictationExample(word: string, grade?: number): Promise<string> {
   if (FALLBACK_SENTENCES[word]) {
     return FALLBACK_SENTENCES[word];
   }
 
   if (!config.apiKey) {
-    return getFallbackExample(word);
+    return `${word}，请写出${word}`;
   }
 
   try {
@@ -90,15 +74,18 @@ export async function generateDictationExample(
     if (response.ok) {
       const data = await response.json();
       const aiExample = data.choices?.[0]?.message?.content?.trim();
-      if (aiExample && isValidExample(aiExample)) {
-        return formatExample(aiExample, word);
+      if (aiExample && aiExample.includes('，')) {
+        const parts = aiExample.split('，');
+        if (parts.length >= 2) {
+          return `${word}，${parts[1]}`;
+        }
       }
     }
   } catch (error) {
     console.error('豆包API调用失败:', error);
   }
 
-  return getFallbackExample(word);
+  return `${word}，请写出${word}`;
 }
 
 function buildPrompt(word: string, grade?: number): string {
@@ -110,55 +97,42 @@ function buildPrompt(word: string, grade?: number): string {
   }
 }
 
-function isValidExample(example: string): boolean {
-  return example.length > 2 && example.includes('，');
-}
+export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null> {
+  if (!config.apiKey) {
+    console.log('未配置API Key');
+    return null;
+  }
 
-function formatExample(example: string, word: string): string {
-  let cleaned = example.replace(/["""']/g, '').trim();
-  
-  if (cleaned.includes('，')) {
-    const parts = cleaned.split('，');
-    if (parts.length >= 2) {
-      return `${word}，${parts[1]}`;
+  try {
+    const response = await fetch(`${API_BASE_URL}/audio/speech`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'Doubao-TTS-2.0',
+        input: text,
+        voice: 'zh_female_qingxin',
+        response_format: 'mp3',
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`TTS请求失败: ${response.status}`);
+      return null;
     }
-  }
-  
-  if (cleaned.includes(',')) {
-    const parts = cleaned.split(',');
-    if (parts.length >= 2) {
-      return `${word}，${parts[1]}`;
-    }
-  }
-  
-  return getFallbackExample(word);
-}
 
-function getFallbackExample(word: string): string {
-  if (FALLBACK_SENTENCES[word]) {
-    return FALLBACK_SENTENCES[word];
+    const blob = await response.blob();
+    return blob.arrayBuffer();
+  } catch (error) {
+    console.error('豆包TTS失败:', error);
+    return null;
   }
-  
-  if (word.length === 1) {
-    const template = SENTENCE_TEMPLATES[Math.floor(Math.random() * SENTENCE_TEMPLATES.length)];
-    return template.replace(/{word}/g, word);
-  } else {
-    const template = WORD_SENTENCE_TEMPLATES[Math.floor(Math.random() * WORD_SENTENCE_TEMPLATES.length)];
-    return template.replace(/{word}/g, word);
-  }
-}
-
-export async function speakWithDoubao(text: string): Promise<void> {
-  console.log('使用系统语音播放:', text);
-  throw new Error('使用系统语音');
-}
-
-export function clearAudioCache() {
 }
 
 export default {
   configureDoubao,
   generateDictationExample,
-  speakWithDoubao,
-  clearAudioCache,
+  synthesizeSpeech,
 };

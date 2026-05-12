@@ -20,7 +20,7 @@ export default function DictationPage() {
     mode: string;
     lessonId?: string;
   }>();
-  const { speak, stop, setRepeatCount } = useSpeech();
+  const { speak, stop, setRepeatCount, currentSource } = useSpeech();
 
   const [dictationMode, setDictationMode] = useState<DictationMode>('character');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -67,8 +67,7 @@ export default function DictationPage() {
         const { generateDictationExample } = await import('../src/services/doubaoService');
         const word = dictationItems[currentIndex];
         try {
-          const result = await generateDictationExample(word.text, word.grade);
-          const example = typeof result === 'string' ? result : result.example;
+          const example = await generateDictationExample(word.text, word.grade);
           setExamples(prev => new Map(prev).set(currentIndex, example));
         } catch (error) {
           console.error('获取例句失败:', error);
@@ -144,6 +143,11 @@ export default function DictationPage() {
     }
   };
 
+  const getVoiceLabel = () => {
+    if (currentSource === 'doubao') return '🔊 豆包TTS';
+    return '🔊 系统语音';
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -180,6 +184,7 @@ export default function DictationPage() {
         <Text style={styles.progressText}>
           第 {currentIndex + 1} / {dictationItems.length} 题
         </Text>
+        <Text style={styles.voiceLabel}>{getVoiceLabel()}</Text>
       </View>
 
       <View style={styles.speakSection}>
@@ -280,6 +285,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#8B0000',
+  },
+  voiceLabel: {
+    fontSize: 12,
+    marginTop: 4,
+    color: '#666',
   },
   speakSection: {
     padding: 16,

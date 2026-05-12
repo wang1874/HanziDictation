@@ -1,4 +1,5 @@
-const API_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3';
+const CHAT_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
+const TTS_API_URL = 'https://ark.cn-beijing.volces.com/api/text2speech/v1';
 const DEFAULT_MODEL = 'ep-20241213164445-pk5jx';
 
 interface DoubaoConfig {
@@ -23,7 +24,7 @@ export async function generateDictationExample(word: string, grade?: number): Pr
 
   try {
     const prompt = buildPrompt(word, grade);
-    const response = await fetch(`${API_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${CHAT_API_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -52,8 +53,8 @@ export async function generateDictationExample(word: string, grade?: number): Pr
       if (aiExample && aiExample.includes('，')) {
         const parts = aiExample.split('，');
         if (parts.length >= 2) {
-          console.log('使用豆包生成例句:', word);
-          return `${word}，${parts[1]}`;
+          console.log('使用豆包生成例句:', aiExample);
+          return aiExample;
         }
       }
     } else {
@@ -78,25 +79,31 @@ function buildPrompt(word: string, grade?: number): string {
 
 function getLocalFallbackExample(word: string): string {
   const FALLBACK_SENTENCES: Record<string, string> = {
-    '天': '天，今天的天气真好',
-    '地': '地，地上有一只小蚂蚁',
-    '人': '人，我们都是中国人',
-    '爸': '爸，爸爸爱我',
-    '妈': '妈，妈妈很辛苦',
-    '国': '国，我爱我的祖国',
-    '家': '家，我们都有一个家',
-    '学': '学，好好学习天天向上',
-    '饺': '饺，我爱吃饺子',
-    '燃': '燃，火焰在燃烧',
-    '和蔼可亲': '和蔼可亲，张老师和蔼可亲',
-    '例如': '例如，例如这个例子',
+    '天': '天，今天天气很好',
+    '地': '地，草地上有小花',
+    '人': '人，我们都是好人',
+    '爸': '爸，爸爸去上班',
+    '妈': '妈，妈妈在做饭',
+    '国': '国，祖国山河美',
+    '家': '家，我爱我的家',
+    '学': '学，我们去学校',
+    '饺': '饺，饺子很好吃',
+    '燃': '燃，火苗在燃烧',
+    '和蔼可亲': '和蔼可亲，老师很和蔼可亲',
+    '例如': '例如，举个例子',
     '灿烂': '灿烂，阳光很灿烂',
-    '美丽': '美丽，花园真美丽',
-    '快乐': '快乐，我们很快乐',
-    '温暖': '温暖，春天很温暖',
-    '希望': '希望，我们充满希望',
-    '努力': '努力，我们要努力学习',
-    '坚持': '坚持，坚持就是胜利',
+    '美丽': '美丽，花朵真美丽',
+    '快乐': '快乐，大家很快乐',
+    '温暖': '温暖，春风很温暖',
+    '希望': '希望，心中有希望',
+    '努力': '努力，学习要努力',
+    '坚持': '坚持，坚持就胜利',
+    '领袖': '领袖，伟大的领袖',
+    '学校': '学校，我们的学校',
+    '学习': '学习，好好学习',
+    '老师': '老师，尊敬老师',
+    '学生': '学生，我是学生',
+    '教室': '教室，安静的教室',
   };
 
   if (FALLBACK_SENTENCES[word]) {
@@ -104,9 +111,9 @@ function getLocalFallbackExample(word: string): string {
   }
   
   if (word.length === 1) {
-    return `${word}，请写出这个字`;
+    return `${word}，${word}字怎么写`;
   } else {
-    return `${word}，请写出这个词语`;
+    return `${word}，这个词怎么写`;
   }
 }
 
@@ -117,8 +124,8 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
   }
 
   try {
-    console.log('使用豆包TTS合成语音:', text);
-    const response = await fetch(`${API_BASE_URL}/audio/speech`, {
+    console.log('尝试使用豆包TTS合成语音...');
+    const response = await fetch(TTS_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -129,16 +136,18 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
         input: text,
         voice: 'zh_female_qingxin',
         response_format: 'mp3',
+        rate: 0.8,
       }),
     });
 
     if (!response.ok) {
-      console.error(`豆包TTS请求失败: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`豆包TTS请求失败: ${response.status} - ${errorText}`);
       return null;
     }
 
     const blob = await response.blob();
-    console.log('豆包TTS合成成功');
+    console.log('豆包TTS合成成功，音频大小:', blob.size, 'bytes');
     return blob.arrayBuffer();
   } catch (error) {
     console.error('豆包TTS失败:', error);

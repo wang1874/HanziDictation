@@ -131,10 +131,10 @@ let audioCache = new Map<string, Audio.Sound>();
 export async function generateDictationExample(
   word: string,
   grade?: number
-): Promise<string> {
+): Promise<{ example: string; source: 'doubao' | 'fallback' }> {
   if (!config.apiKey) {
     console.log('未配置豆包API Key，使用本地例句');
-    return getFallbackExample(word);
+    return { example: getFallbackExample(word), source: 'fallback' };
   }
 
   try {
@@ -166,14 +166,14 @@ export async function generateDictationExample(
       const data = await response.json();
       const aiExample = data.choices?.[0]?.message?.content?.trim();
       if (aiExample && isValidExample(aiExample)) {
-        return formatExample(aiExample, word);
+        return { example: formatExample(aiExample, word), source: 'doubao' };
       }
     }
   } catch (error) {
     console.error('豆包API调用失败，使用本地例句:', error);
   }
 
-  return getFallbackExample(word);
+  return { example: getFallbackExample(word), source: 'fallback' };
 }
 
 function buildPrompt(word: string, grade?: number): string {

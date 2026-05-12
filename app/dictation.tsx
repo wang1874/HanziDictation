@@ -28,9 +28,10 @@ export default function DictationPage() {
   const [knownWords, setKnownWords] = useState(0);
   const [repeatCount] = useState(2);
   const [dictationItems, setDictationItems] = useState<Word[]>([]);
-  const [examples, setExamples] = useState<Map<number, string>>(new Map());
+  const [examples, setExamples] = useState<Map<number, { example: string; source: 'doubao' | 'fallback' }>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceSource, setVoiceSource] = useState<'doubao' | 'system'>('system');
 
   useEffect(() => {
     const loadData = async () => {
@@ -67,8 +68,8 @@ export default function DictationPage() {
       if (!examples.has(currentIndex)) {
         const { generateDictationExample } = await import('../src/services/doubaoService');
         const word = dictationItems[currentIndex];
-        const example = await generateDictationExample(word.text, word.grade);
-        setExamples(prev => new Map(prev).set(currentIndex, example));
+        const result = await generateDictationExample(word.text, word.grade);
+        setExamples(prev => new Map(prev).set(currentIndex, result));
       }
     }
   }, [dictationItems, currentIndex, examples]);
@@ -77,8 +78,10 @@ export default function DictationPage() {
     if (dictationItems.length > 0 && currentIndex < dictationItems.length) {
       setIsSpeaking(true);
       await loadExampleForCurrentItem();
-      const example = examples.get(currentIndex) || dictationItems[currentIndex].text;
-      speak(example);
+      const exampleData = examples.get(currentIndex);
+      const example = exampleData?.example || dictationItems[currentIndex].text;
+      const source = await speak(example);
+      setVoiceSource(source);
       setTimeout(() => setIsSpeaking(false), 1000);
     }
   }, [dictationItems, currentIndex, examples, loadExampleForCurrentItem, speak]);
@@ -160,6 +163,18 @@ export default function DictationPage() {
 
   const currentItem = dictationItems[currentIndex];
   const currentExample = examples.get(currentIndex);
+  const exampleSource = currentExample?.source;
+
+  const getSourceLabel = () => {
+    if (exampleSource === 'doubao') return '🌐 豆包AI例句';
+    if (exampleSource === 'fallback') return '📚 本地例句';
+    return '';
+  };
+
+  const getVoiceLabel = () => {
+    if (voiceSource === 'doubao') return '🔊 豆包TTS';
+    return '🔊 系统语音';
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -175,6 +190,12 @@ export default function DictationPage() {
         <Text style={styles.progressText}>
           第 {currentIndex + 1} / {dictationItems.length} 题
         </Text>
+        <View style={styles.sourceTags}>
+          {getSourceLabel() && (
+            <Text style={styles.sourceTag}>{getSourceLabel()}</Text>
+          )}
+          <Text style={styles.sourceTag}>{getVoiceLabel()}</Text>
+        </View>
       </View>
 
       <View style={styles.speakSection}>
@@ -275,6 +296,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8B0000',
     fontWeight: 'bold',
+  },
+  sourceTags: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  sourceTag: {
+    fontSize: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: '#FFE4C4',
+    borderRadius: 4,
+    color: '#8B0000',
   },
   speakSection: {
     padding: 16,

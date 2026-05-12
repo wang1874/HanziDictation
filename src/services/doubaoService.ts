@@ -1,3 +1,5 @@
+import { Audio } from 'expo-av';
+
 const API_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 const DEFAULT_MODEL = 'ep-20241213164445-pk5jx';
 
@@ -7,6 +9,7 @@ interface DoubaoConfig {
 }
 
 let config: DoubaoConfig = {
+  apiKey: 'caedce2b76f5-4b8d-9544-5b4271c4e5a8',
   model: DEFAULT_MODEL,
 };
 
@@ -135,6 +138,8 @@ const INTELLIGENT_SENTENCES: Record<string, string> = {
   '坚持': '坚持，坚持就是胜利'
 };
 
+let audioCache = new Map<string, Audio.Sound>();
+
 export async function generateDictationExample(
   word: string,
   grade?: number
@@ -187,9 +192,9 @@ export async function generateDictationExample(
 function buildPrompt(word: string, grade?: number): string {
   const gradeText = grade ? `适合${grade}年级学生` : '';
   if (word.length === 1) {
-    return `请为汉字"${word}"${gradeText}生成一个简单的听写例句。格式：${word}，简单句。例如：国，我们的祖国很伟大。`;
+    return `请为汉字"${word}"${gradeText}生成一个简单的听写例句。格式：${word}，简单句。例子：国，我们的祖国很伟大。`;
   } else {
-    return `请为词语"${word}"${gradeText}生成一个简单的听写例句。格式：${word}，简单句。例如：学校，我们的学校很美丽。`;
+    return `请为词语"${word}"${gradeText}生成一个简单的听写例句。格式：${word}，简单句。例子：学校，我们的学校很美丽。`;
   }
 }
 
@@ -223,7 +228,21 @@ function generateSmartExample(word: string): string {
   }
 }
 
+export async function speakWithDoubao(text: string): Promise<void> {
+  console.log('豆包TTS暂未完全配置，使用系统语音:', text);
+  throw new Error('TTS API未配置');
+}
+
+export function clearAudioCache() {
+  audioCache.forEach((sound) => {
+    sound.unloadAsync();
+  });
+  audioCache.clear();
+}
+
 export default {
   configureDoubao,
   generateDictationExample,
+  speakWithDoubao,
+  clearAudioCache,
 };

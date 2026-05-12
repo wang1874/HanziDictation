@@ -1,8 +1,10 @@
 import * as Speech from 'expo-speech';
 import { useCallback, useRef } from 'react';
+import { speakWithDoubao } from '../services/doubaoService';
 
 export const useSpeech = () => {
   const repeatCountRef = useRef(2);
+  const useDoubaoTTS = useRef(true);
   
   const setRepeatCount = useCallback((count: number) => {
     repeatCountRef.current = count;
@@ -10,12 +12,21 @@ export const useSpeech = () => {
 
   const speak = useCallback(async (text: string) => {
     try {
-      if (await Speech.isSpeakingAsync()) {
-        await Speech.stop();
-      }
-      
       const count = repeatCountRef.current;
       for (let i = 0; i < count; i++) {
+        if (useDoubaoTTS.current) {
+          try {
+            await speakWithDoubao(text);
+            await new Promise(resolve => setTimeout(resolve, 2500));
+            continue;
+          } catch (error) {
+            console.log('豆包TTS失败，使用系统语音:', error);
+          }
+        }
+        
+        if (await Speech.isSpeakingAsync()) {
+          await Speech.stop();
+        }
         Speech.speak(text, {
           language: 'zh-CN',
           pitch: 1.0,
@@ -31,6 +42,15 @@ export const useSpeech = () => {
 
   const speakOnce = useCallback(async (text: string) => {
     try {
+      if (useDoubaoTTS.current) {
+        try {
+          await speakWithDoubao(text);
+          return;
+        } catch (error) {
+          console.log('豆包TTS失败，使用系统语音:', error);
+        }
+      }
+      
       if (await Speech.isSpeakingAsync()) {
         await Speech.stop();
       }

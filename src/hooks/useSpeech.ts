@@ -21,12 +21,13 @@ export const useSpeech = () => {
         { shouldPlay: true }
       );
       
-      await new Promise((resolve) => {
+      await new Promise<void>((resolve) => {
         sound.setOnPlaybackStatusUpdate((status) => {
-          if (status.didJustFinish) {
+          const playbackStatus = status as any;
+          if (playbackStatus.didJustFinish) {
             sound.unloadAsync();
             URL.revokeObjectURL(uri);
-            resolve(null);
+            resolve();
           }
         });
       });

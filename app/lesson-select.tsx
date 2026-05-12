@@ -1,86 +1,101 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
   SafeAreaView,
-  Alert,
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
-import { Colors, FontSizes, Spacing } from '../src/utils/theme';
+import { useRouter } from 'expo-router';
 import GradeSelector from '../src/components/GradeSelector';
-import { getLessonsByGrade, Lesson } from '../src/data/wordDatabase';
+import { getLessonsByGrade } from '../src/data/wordDatabase';
+import type { Lesson } from '../src/types';
 
 export default function LessonSelectPage() {
-  const [selectedGrade, setSelectedGrade] = useState<number>(3);
+  const router = useRouter();
+  const [selectedGrade, setSelectedGrade] = useState<number>(1);
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const theme = Colors.light;
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleGradeSelect = (grade: number | null) => {
-    if (grade !== null) {
-      setSelectedGrade(grade);
-      const gradeLessons = getLessonsByGrade(grade);
-      setLessons(gradeLessons);
-    }
-  };
-
-  const handleSelectLesson = (lesson: Lesson) => {
-    router.push({
-      pathname: '/dictation',
-      params: { grade: selectedGrade.toString(), mode: 'character', lessonId: lesson.id },
-    });
-  };
-
-  // 初始化加载课程
-  useEffect(() => {
-    const gradeLessons = getLessonsByGrade(selectedGrade);
+  const loadLessons = useCallback(async (grade: number) => {
+    setIsLoading(true);
+    const gradeLessons = getLessonsByGrade(grade);
     setLessons(gradeLessons);
+    setIsLoading(false);
   }, []);
 
+  React.useEffect(() => {
+    loadLessons(selectedGrade);
+  }, [selectedGrade, loadLessons]);
+
+  const handleGradeSelect = useCallback((grade: number | null) => {
+    if (grade !== null) {
+      setSelectedGrade(grade);
+    }
+  }, []);
+
+  const handleLessonSelect = useCallback((lesson: Lesson) => {
+    router.push({
+      pathname: '/dictation',
+      params: {
+        grade: selectedGrade.toString(),
+        mode: 'character',
+        lessonId: lesson.id,
+      },
+    });
+  }, [router, selectedGrade]);
+
+  const renderLessonItem = (lesson: Lesson, index: number) => (
+    <TouchableOpacity
+      key={lesson.id}
+      style={styles.lessonItem}
+      onPress={() => handleLessonSelect(lesson)}
+    >
+      <View style={styles.lessonIcon}>
+        <Text style={styles.lessonIconText}>{index + 1}</Text>
+      </View>
+      <View style={styles.lessonInfo}>
+        <Text style={styles.lessonTitle}>{lesson.title}</Text>
+        <Text style={styles.lessonMeta}>
+          {lesson.words.length}个生字词
+        </Text>
+      </View>
+      <Text style={styles.arrow}>›</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>← 返回</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backText}>← 返回</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>课文听写</Text>
+        <Text style={styles.headerTitle}>选择课文</Text>
         <View style={styles.placeholder} />
       </View>
 
-      <View style={styles.gradeSection}>
-        <Text style={styles.sectionLabel}>选择年级</Text>
+      <View style={styles.content}>
         <GradeSelector
           selectedGrade={selectedGrade}
           onSelectGrade={handleGradeSelect}
         />
-      </View>
-
-      <ScrollView style={styles.lessonList}>
-        <Text style={styles.sectionLabel}>选择课文</Text>
-        {lessons.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>该年级暂无课文内容</Text>
+        
+        <Text style={styles.sectionTitle}>
+          {selectedGrade}年级 - 课文列表
+        </Text>
+        
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#8B0000" />
           </View>
         ) : (
-          lessons.map((lesson) => (
-            <TouchableOpacity
-              key={lesson.id}
-              style={styles.lessonItem}
-              onPress={() => handleSelectLesson(lesson)}
-            >
-              <View style={styles.lessonInfo}>
-                <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                <Text style={styles.lessonUnit}>第{lesson.unit}单元</Text>
-              </View>
-              <View style={styles.lessonWordCount}>
-                <Text style={styles.lessonWordCountText}>{lesson.words.length}个</Text>
-              </View>
-            </TouchableOpacity>
-          ))
+          <ScrollView style={styles.lessonList}>
+            {lessons.map((lesson, index) => renderLessonItem(lesson, index))}
+          </ScrollView>
         )}
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -88,38 +103,45 @@ export default function LessonSelectPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FDF5E6',
   },
   header: {
-    padding: Spacing.lg,
+    padding: 16,
     backgroundColor: '#8B0000',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  backButton: {
+  backBtn: {
+    padding: 4,
+  },
+  backText: {
     color: '#FFF8E7',
-    fontSize: FontSizes.medium,
+    fontSize: 16,
   },
   headerTitle: {
-    fontSize: FontSizes.xlarge,
-    fontWeight: 'bold',
     color: '#FFF8E7',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   placeholder: {
     width: 60,
   },
-  gradeSection: {
-    padding: Spacing.md,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0D5C7',
+  content: {
+    flex: 1,
+    padding: 16,
   },
-  sectionLabel: {
-    fontSize: FontSizes.large,
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: Spacing.md,
-    paddingHorizontal: Spacing.sm,
+    color: '#8B0000',
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   lessonList: {
     flex: 1,
@@ -127,43 +149,42 @@ const styles = StyleSheet.create({
   lessonItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0D5C7',
     backgroundColor: '#FFF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#8B0000',
+  },
+  lessonIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFE4C4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  lessonIconText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#8B0000',
   },
   lessonInfo: {
     flex: 1,
   },
   lessonTitle: {
-    fontSize: FontSizes.medium,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 4,
   },
-  lessonUnit: {
-    fontSize: FontSizes.small,
+  lessonMeta: {
+    fontSize: 12,
     color: '#666',
+    marginTop: 4,
   },
-  lessonWordCount: {
-    backgroundColor: '#8B0000',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: 20,
-  },
-  lessonWordCountText: {
-    color: '#FFF8E7',
-    fontWeight: 'bold',
-    fontSize: FontSizes.small,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: FontSizes.medium,
-    color: '#999',
+  arrow: {
+    fontSize: 24,
+    color: '#8B0000',
   },
 });

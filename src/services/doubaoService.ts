@@ -15,35 +15,10 @@ export function configureDoubao(newConfig: DoubaoConfig) {
   config = { ...config, ...newConfig };
 }
 
-const FALLBACK_SENTENCES: Record<string, string> = {
-  '天': '天，今天的天气真好',
-  '地': '地，地上有一只小蚂蚁',
-  '人': '人，我们都是中国人',
-  '爸': '爸，爸爸爱我',
-  '妈': '妈，妈妈很辛苦',
-  '国': '国，我爱我的祖国',
-  '家': '家，我们都有一个家',
-  '学': '学，好好学习天天向上',
-  '饺': '饺，我爱吃饺子',
-  '燃': '燃，火焰在燃烧',
-  '和蔼可亲': '和蔼可亲，张老师和蔼可亲',
-  '例如': '例如，例如这个例子',
-  '灿烂': '灿烂，阳光很灿烂',
-  '美丽': '美丽，花园真美丽',
-  '快乐': '快乐，我们很快乐',
-  '温暖': '温暖，春天很温暖',
-  '希望': '希望，我们充满希望',
-  '努力': '努力，我们要努力学习',
-  '坚持': '坚持，坚持就是胜利',
-};
-
 export async function generateDictationExample(word: string, grade?: number): Promise<string> {
-  if (FALLBACK_SENTENCES[word]) {
-    return FALLBACK_SENTENCES[word];
-  }
-
   if (!config.apiKey) {
-    return `${word}，请写出${word}`;
+    console.log('未配置API Key，使用本地例句');
+    return getLocalFallbackExample(word);
   }
 
   try {
@@ -77,15 +52,19 @@ export async function generateDictationExample(word: string, grade?: number): Pr
       if (aiExample && aiExample.includes('，')) {
         const parts = aiExample.split('，');
         if (parts.length >= 2) {
+          console.log('使用豆包生成例句:', word);
           return `${word}，${parts[1]}`;
         }
       }
+    } else {
+      console.error('豆包API响应失败:', response.status);
     }
   } catch (error) {
     console.error('豆包API调用失败:', error);
   }
 
-  return `${word}，请写出${word}`;
+  console.log('豆包不可用，使用本地例句:', word);
+  return getLocalFallbackExample(word);
 }
 
 function buildPrompt(word: string, grade?: number): string {
@@ -97,13 +76,48 @@ function buildPrompt(word: string, grade?: number): string {
   }
 }
 
+function getLocalFallbackExample(word: string): string {
+  const FALLBACK_SENTENCES: Record<string, string> = {
+    '天': '天，今天的天气真好',
+    '地': '地，地上有一只小蚂蚁',
+    '人': '人，我们都是中国人',
+    '爸': '爸，爸爸爱我',
+    '妈': '妈，妈妈很辛苦',
+    '国': '国，我爱我的祖国',
+    '家': '家，我们都有一个家',
+    '学': '学，好好学习天天向上',
+    '饺': '饺，我爱吃饺子',
+    '燃': '燃，火焰在燃烧',
+    '和蔼可亲': '和蔼可亲，张老师和蔼可亲',
+    '例如': '例如，例如这个例子',
+    '灿烂': '灿烂，阳光很灿烂',
+    '美丽': '美丽，花园真美丽',
+    '快乐': '快乐，我们很快乐',
+    '温暖': '温暖，春天很温暖',
+    '希望': '希望，我们充满希望',
+    '努力': '努力，我们要努力学习',
+    '坚持': '坚持，坚持就是胜利',
+  };
+
+  if (FALLBACK_SENTENCES[word]) {
+    return FALLBACK_SENTENCES[word];
+  }
+  
+  if (word.length === 1) {
+    return `${word}，请写出这个字`;
+  } else {
+    return `${word}，请写出这个词语`;
+  }
+}
+
 export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null> {
   if (!config.apiKey) {
-    console.log('未配置API Key');
+    console.log('未配置API Key，无法使用豆包TTS');
     return null;
   }
 
   try {
+    console.log('使用豆包TTS合成语音:', text);
     const response = await fetch(`${API_BASE_URL}/audio/speech`, {
       method: 'POST',
       headers: {
@@ -119,11 +133,12 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
     });
 
     if (!response.ok) {
-      console.error(`TTS请求失败: ${response.status}`);
+      console.error(`豆包TTS请求失败: ${response.status}`);
       return null;
     }
 
     const blob = await response.blob();
+    console.log('豆包TTS合成成功');
     return blob.arrayBuffer();
   } catch (error) {
     console.error('豆包TTS失败:', error);

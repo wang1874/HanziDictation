@@ -40,20 +40,22 @@ export const useSpeech = () => {
     const count = repeatCountRef.current;
     
     for (let i = 0; i < count; i++) {
-      let success = false;
+      let useDoubao = false;
       
       try {
         const audioBuffer = await synthesizeSpeech(text);
         if (audioBuffer) {
           await playAudioBuffer(audioBuffer);
-          setCurrentSource('doubao');
-          success = true;
+          useDoubao = true;
         }
       } catch (error) {
-        console.log('豆包TTS失败，使用系统语音:', error);
+        console.log('豆包TTS失败，尝试系统语音:', error);
       }
       
-      if (!success) {
+      if (useDoubao) {
+        setCurrentSource('doubao');
+      } else {
+        console.log('使用系统语音播放:', text);
         if (await Speech.isSpeakingAsync()) {
           await Speech.stop();
         }
@@ -66,25 +68,29 @@ export const useSpeech = () => {
         setCurrentSource('system');
       }
       
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      if (i < count - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2500));
+      }
     }
   }, [playAudioBuffer]);
 
   const speakOnce = useCallback(async (text: string) => {
-    let success = false;
+    let useDoubao = false;
     
     try {
       const audioBuffer = await synthesizeSpeech(text);
       if (audioBuffer) {
         await playAudioBuffer(audioBuffer);
-        setCurrentSource('doubao');
-        success = true;
+        useDoubao = true;
       }
     } catch (error) {
-      console.log('豆包TTS失败，使用系统语音:', error);
+      console.log('豆包TTS失败，尝试系统语音:', error);
     }
     
-    if (!success) {
+    if (useDoubao) {
+      setCurrentSource('doubao');
+    } else {
+      console.log('使用系统语音播放:', text);
       if (await Speech.isSpeakingAsync()) {
         await Speech.stop();
       }

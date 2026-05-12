@@ -1,230 +1,380 @@
 import { Word } from '../types';
 
-export const grade1Words: Word[] = [
-  { id: '1-1', text: '一', pinyin: 'yī', example: '一，一二三四五的一', type: 'character', grade: 1 },
-  { id: '1-2', text: '二', pinyin: 'èr', example: '二，十二月二号', type: 'character', grade: 1 },
-  { id: '1-3', text: '三', pinyin: 'sān', example: '三，三个人', type: 'character', grade: 1 },
-  { id: '1-4', text: '四', pinyin: 'sì', example: '四，四季如春', type: 'character', grade: 1 },
-  { id: '1-5', text: '五', pinyin: 'wǔ', example: '五，五颜六色', type: 'character', grade: 1 },
-  { id: '1-6', text: '六', pinyin: 'liù', example: '六，六一儿童节', type: 'character', grade: 1 },
-  { id: '1-7', text: '七', pinyin: 'qī', example: '七，七上八下', type: 'character', grade: 1 },
-  { id: '1-8', text: '八', pinyin: 'bā', example: '八，四面八方', type: 'character', grade: 1 },
-  { id: '1-9', text: '九', pinyin: 'jiǔ', example: '九，九九归一', type: 'character', grade: 1 },
-  { id: '1-10', text: '十', pinyin: 'shí', example: '十，十一月十号', type: 'character', grade: 1 },
-  { id: '1-11', text: '人', pinyin: 'rén', example: '人，人们的人', type: 'character', grade: 1 },
-  { id: '1-12', text: '大', pinyin: 'dà', example: '大，大小的大', type: 'character', grade: 1 },
-  { id: '1-13', text: '小', pinyin: 'xiǎo', example: '小，大小的小', type: 'character', grade: 1 },
-  { id: '1-14', text: '中', pinyin: 'zhōng', example: '中，中国的中', type: 'character', grade: 1 },
-  { id: '1-15', text: '上', pinyin: 'shàng', example: '上，上下的上', type: 'character', grade: 1 },
-  { id: '1-16', text: '下', pinyin: 'xià', example: '下，上下的下', type: 'character', grade: 1 },
-  { id: '1-17', text: '口', pinyin: 'kǒu', example: '口，人口的口', type: 'character', grade: 1 },
-  { id: '1-18', text: '手', pinyin: 'shǒu', example: '手，双手的手', type: 'character', grade: 1 },
-  { id: '1-19', text: '日', pinyin: 'rì', example: '日，日月的日', type: 'character', grade: 1 },
-  { id: '1-20', text: '月', pinyin: 'yuè', example: '月，日月的月', type: 'character', grade: 1 },
-  { id: '1-21', text: '水', pinyin: 'shuǐ', example: '水，河水的水', type: 'character', grade: 1 },
-  { id: '1-22', text: '火', pinyin: 'huǒ', example: '火，火焰的火', type: 'character', grade: 1 },
-  { id: '1-23', text: '山', pinyin: 'shān', example: '山，高山的山', type: 'character', grade: 1 },
-  { id: '1-24', text: '石', pinyin: 'shí', example: '石，石头的石', type: 'character', grade: 1 },
-  { id: '1-25', text: '田', pinyin: 'tián', example: '田，水田的田', type: 'character', grade: 1 },
-  { id: '1-26', text: '禾', pinyin: 'hé', example: '禾，禾苗的禾', type: 'character', grade: 1 },
-  { id: '1-27', text: '天', pinyin: 'tiān', example: '天，天空的天', type: 'character', grade: 1 },
-  { id: '1-28', text: '云', pinyin: 'yún', example: '云，白云的云', type: 'character', grade: 1 },
-  { id: '1-29', text: '风', pinyin: 'fēng', example: '风，风力的风', type: 'character', grade: 1 },
-  { id: '1-30', text: '雨', pinyin: 'yǔ', example: '雨，下雨的雨', type: 'character', grade: 1 },
+export interface Lesson {
+  id: string;
+  title: string;
+  grade: number;
+  unit: number;
+  words: Word[];
+}
+
+export const grade1Lessons: Lesson[] = [
+  {
+    id: '1-1-1',
+    title: '天地人',
+    grade: 1,
+    unit: 1,
+    words: [
+      { id: '1-1-1-1', text: '天', pinyin: 'tiān', example: '天，天空的天', type: 'character', grade: 1 },
+      { id: '1-1-1-2', text: '地', pinyin: 'dì', example: '地，大地的地', type: 'character', grade: 1 },
+      { id: '1-1-1-3', text: '人', pinyin: 'rén', example: '人，人们的人', type: 'character', grade: 1 },
+      { id: '1-1-1-4', text: '你', pinyin: 'nǐ', example: '你，你好的你', type: 'character', grade: 1 },
+      { id: '1-1-1-5', text: '我', pinyin: 'wǒ', example: '我，我的我', type: 'character', grade: 1 },
+      { id: '1-1-1-6', text: '他', pinyin: 'tā', example: '他，他们的他', type: 'character', grade: 1 },
+    ],
+  },
+  {
+    id: '1-1-2',
+    title: '金木水火土',
+    grade: 1,
+    unit: 1,
+    words: [
+      { id: '1-1-2-1', text: '金', pinyin: 'jīn', example: '金，金色的金', type: 'character', grade: 1 },
+      { id: '1-1-2-2', text: '木', pinyin: 'mù', example: '木，木头的木', type: 'character', grade: 1 },
+      { id: '1-1-2-3', text: '水', pinyin: 'shuǐ', example: '水，河水的水', type: 'character', grade: 1 },
+      { id: '1-1-2-4', text: '火', pinyin: 'huǒ', example: '火，火焰的火', type: 'character', grade: 1 },
+      { id: '1-1-2-5', text: '土', pinyin: 'tǔ', example: '土，土地的土', type: 'character', grade: 1 },
+    ],
+  },
+  {
+    id: '1-2-1',
+    title: '口耳目',
+    grade: 1,
+    unit: 2,
+    words: [
+      { id: '1-2-1-1', text: '口', pinyin: 'kǒu', example: '口，人口的口', type: 'character', grade: 1 },
+      { id: '1-2-1-2', text: '耳', pinyin: 'ěr', example: '耳，耳朵的耳', type: 'character', grade: 1 },
+      { id: '1-2-1-3', text: '目', pinyin: 'mù', example: '目，目光的目', type: 'character', grade: 1 },
+      { id: '1-2-1-4', text: '手', pinyin: 'shǒu', example: '手，双手的手', type: 'character', grade: 1 },
+      { id: '1-2-1-5', text: '足', pinyin: 'zú', example: '足，手足的足', type: 'character', grade: 1 },
+      { id: '1-2-1-6', text: '站', pinyin: 'zhàn', example: '站，站立的站', type: 'character', grade: 1 },
+      { id: '1-2-1-7', text: '坐', pinyin: 'zuò', example: '坐，坐下的坐', type: 'character', grade: 1 },
+    ],
+  },
+  {
+    id: '1-2-2',
+    title: '日月水火',
+    grade: 1,
+    unit: 2,
+    words: [
+      { id: '1-2-2-1', text: '日', pinyin: 'rì', example: '日，日月的日', type: 'character', grade: 1 },
+      { id: '1-2-2-2', text: '月', pinyin: 'yuè', example: '月，月亮的月', type: 'character', grade: 1 },
+      { id: '1-2-2-3', text: '水', pinyin: 'shuǐ', example: '水，水流的水', type: 'character', grade: 1 },
+      { id: '1-2-2-4', text: '火', pinyin: 'huǒ', example: '火，火苗的火', type: 'character', grade: 1 },
+      { id: '1-2-2-5', text: '山', pinyin: 'shān', example: '山，高山的山', type: 'character', grade: 1 },
+      { id: '1-2-2-6', text: '石', pinyin: 'shí', example: '石，石头的石', type: 'character', grade: 1 },
+      { id: '1-2-2-7', text: '田', pinyin: 'tián', example: '田，田地的田', type: 'character', grade: 1 },
+      { id: '1-2-2-8', text: '禾', pinyin: 'hé', example: '禾，禾苗的禾', type: 'character', grade: 1 },
+    ],
+  },
+  {
+    id: '1-3-1',
+    title: '对韵歌',
+    grade: 1,
+    unit: 3,
+    words: [
+      { id: '1-3-1-1', text: '云', pinyin: 'yún', example: '云，白云的云', type: 'character', grade: 1 },
+      { id: '1-3-1-2', text: '雨', pinyin: 'yǔ', example: '雨，下雨的雨', type: 'character', grade: 1 },
+      { id: '1-3-1-3', text: '风', pinyin: 'fēng', example: '风，大风的风', type: 'character', grade: 1 },
+      { id: '1-3-1-4', text: '花', pinyin: 'huā', example: '花，花朵的花', type: 'character', grade: 1 },
+      { id: '1-3-1-5', text: '鸟', pinyin: 'niǎo', example: '鸟，小鸟的鸟', type: 'character', grade: 1 },
+      { id: '1-3-1-6', text: '虫', pinyin: 'chóng', example: '虫，虫子的虫', type: 'character', grade: 1 },
+    ],
+  },
 ];
 
-export const grade2Words: Word[] = [
-  { id: '2-1', text: '爸', pinyin: 'bà', example: '爸，爸爸的爸', type: 'character', grade: 2 },
-  { id: '2-2', text: '妈', pinyin: 'mā', example: '妈，妈妈的妈', type: 'character', grade: 2 },
-  { id: '2-3', text: '爷', pinyin: 'yé', example: '爷，爷爷的爷', type: 'character', grade: 2 },
-  { id: '2-4', text: '奶', pinyin: 'nǎi', example: '奶，奶奶的奶', type: 'character', grade: 2 },
-  { id: '2-5', text: '哥', pinyin: 'gē', example: '哥，哥哥的哥', type: 'character', grade: 2 },
-  { id: '2-6', text: '姐', pinyin: 'jiě', example: '姐，姐姐的姐', type: 'character', grade: 2 },
-  { id: '2-7', text: '弟', pinyin: 'dì', example: '弟，弟弟的弟', type: 'character', grade: 2 },
-  { id: '2-8', text: '妹', pinyin: 'mèi', example: '妹，妹妹的妹', type: 'character', grade: 2 },
-  { id: '2-9', text: '土', pinyin: 'tǔ', example: '土，土地的土', type: 'character', grade: 2 },
-  { id: '2-10', text: '地', pinyin: 'dì', example: '地，地面的地', type: 'character', grade: 2 },
-  { id: '2-11', text: '国', pinyin: 'guó', example: '国，国家的国', type: 'character', grade: 2 },
-  { id: '2-12', text: '民', pinyin: 'mín', example: '民，人民的民', type: 'character', grade: 2 },
-  { id: '2-13', text: '学', pinyin: 'xué', example: '学，学习的学', type: 'character', grade: 2 },
-  { id: '2-14', text: '校', pinyin: 'xiào', example: '校，学校的校', type: 'character', grade: 2 },
-  { id: '2-15', text: '师', pinyin: 'shī', example: '师，老师的师', type: 'character', grade: 2 },
-  { id: '2-16', text: '生', pinyin: 'shēng', example: '生，学生的生', type: 'character', grade: 2 },
-  { id: '2-17', text: '本', pinyin: 'běn', example: '本，本子的本', type: 'character', grade: 2 },
-  { id: '2-18', text: '书', pinyin: 'shū', example: '书，书本的书', type: 'character', grade: 2 },
-  { id: '2-19', text: '字', pinyin: 'zì', example: '字，汉字的字', type: 'character', grade: 2 },
-  { id: '2-20', text: '文', pinyin: 'wén', example: '文，语文的文', type: 'character', grade: 2 },
-  { id: '2-21', text: '语', pinyin: 'yǔ', example: '语，语文的语', type: 'character', grade: 2 },
-  { id: '2-22', text: '数', pinyin: 'shù', example: '数，数学的数', type: 'character', grade: 2 },
-  { id: '2-23', text: '音', pinyin: 'yīn', example: '音，音乐课的音', type: 'character', grade: 2 },
-  { id: '2-24', text: '乐', pinyin: 'lè', example: '乐，快乐的乐', type: 'character', grade: 2 },
-  { id: '2-25', text: '美', pinyin: 'měi', example: '美，美丽的美', type: 'character', grade: 2 },
-  { id: '2-26', text: '术', pinyin: 'shù', example: '术，美术的术', type: 'character', grade: 2 },
-  { id: '2-27', text: '体', pinyin: 'tǐ', example: '体，体育的体', type: 'character', grade: 2 },
-  { id: '2-28', text: '育', pinyin: 'yù', example: '育，教育的育', type: 'character', grade: 2 },
-  { id: '2-29', text: '课', pinyin: 'kè', example: '课，上课的课', type: 'character', grade: 2 },
-  { id: '2-30', text: '桌', pinyin: 'zhuō', example: '桌，桌子的桌', type: 'character', grade: 2 },
+export const grade2Lessons: Lesson[] = [
+  {
+    id: '2-1-1',
+    title: '小蝌蚪找妈妈',
+    grade: 2,
+    unit: 1,
+    words: [
+      { id: '2-1-1-1', text: '两', pinyin: 'liǎng', example: '两，两个的两', type: 'character', grade: 2 },
+      { id: '2-1-1-2', text: '哪', pinyin: 'nǎ', example: '哪，哪里的哪', type: 'character', grade: 2 },
+      { id: '2-1-1-3', text: '宽', pinyin: 'kuān', example: '宽，宽广的宽', type: 'character', grade: 2 },
+      { id: '2-1-1-4', text: '顶', pinyin: 'dǐng', example: '顶，头顶的顶', type: 'character', grade: 2 },
+      { id: '2-1-1-5', text: '眼', pinyin: 'yǎn', example: '眼，眼睛的眼', type: 'character', grade: 2 },
+      { id: '2-1-1-6', text: '睛', pinyin: 'jīng', example: '睛，眼睛的睛', type: 'character', grade: 2 },
+      { id: '2-1-1-7', text: '肚', pinyin: 'dù', example: '肚，肚子的肚', type: 'character', grade: 2 },
+      { id: '2-1-1-8', text: '皮', pinyin: 'pí', example: '皮，皮肤的皮', type: 'character', grade: 2 },
+      { id: '2-1-1-9', text: '孩', pinyin: 'hái', example: '孩，孩子的孩', type: 'character', grade: 2 },
+      { id: '2-1-1-10', text: '跳', pinyin: 'tiào', example: '跳，跳高的跳', type: 'character', grade: 2 },
+    ],
+  },
+  {
+    id: '2-1-2',
+    title: '我是什么',
+    grade: 2,
+    unit: 1,
+    words: [
+      { id: '2-1-2-1', text: '变', pinyin: 'biàn', example: '变，变化的变', type: 'character', grade: 2 },
+      { id: '2-1-2-2', text: '极', pinyin: 'jí', example: '极，极端的极', type: 'character', grade: 2 },
+      { id: '2-1-2-3', text: '片', pinyin: 'piàn', example: '片，一片的片', type: 'character', grade: 2 },
+      { id: '2-1-2-4', text: '傍', pinyin: 'bàng', example: '傍，傍晚的傍', type: 'character', grade: 2 },
+      { id: '2-1-2-5', text: '海', pinyin: 'hǎi', example: '海，大海的海', type: 'character', grade: 2 },
+      { id: '2-1-2-6', text: '洋', pinyin: 'yáng', example: '洋，海洋的洋', type: 'character', grade: 2 },
+      { id: '2-1-2-7', text: '作', pinyin: 'zuò', example: '作，作业的作', type: 'character', grade: 2 },
+      { id: '2-1-2-8', text: '给', pinyin: 'gěi', example: '给，给予的给', type: 'character', grade: 2 },
+      { id: '2-1-2-9', text: '带', pinyin: 'dài', example: '带，带领的带', type: 'character', grade: 2 },
+      { id: '2-1-2-10', text: '当', pinyin: 'dāng', example: '当，当然的当', type: 'character', grade: 2 },
+    ],
+  },
+  {
+    id: '2-2-1',
+    title: '植物妈妈有办法',
+    grade: 2,
+    unit: 2,
+    words: [
+      { id: '2-2-1-1', text: '法', pinyin: 'fǎ', example: '法，办法的法', type: 'character', grade: 2 },
+      { id: '2-2-1-2', text: '如', pinyin: 'rú', example: '如，如果的如', type: 'character', grade: 2 },
+      { id: '2-2-1-3', text: '脚', pinyin: 'jiǎo', example: '脚，脚步的脚', type: 'character', grade: 2 },
+      { id: '2-2-1-4', text: '它', pinyin: 'tā', example: '它，它们的它', type: 'character', grade: 2 },
+      { id: '2-2-1-5', text: '娃', pinyin: 'wá', example: '娃，娃娃的娃', type: 'character', grade: 2 },
+      { id: '2-2-1-6', text: '她', pinyin: 'tā', example: '她，她们的她', type: 'character', grade: 2 },
+      { id: '2-2-1-7', text: '毛', pinyin: 'máo', example: '毛，羽毛的毛', type: 'character', grade: 2 },
+      { id: '2-2-1-8', text: '更', pinyin: 'gèng', example: '更，更好的更', type: 'character', grade: 2 },
+      { id: '2-2-1-9', text: '知', pinyin: 'zhī', example: '知，知识的知', type: 'character', grade: 2 },
+      { id: '2-2-1-10', text: '识', pinyin: 'shí', example: '识，认识的识', type: 'character', grade: 2 },
+    ],
+  },
+  {
+    id: '2-3-1',
+    title: '曹冲称象',
+    grade: 2,
+    unit: 3,
+    words: [
+      { id: '2-3-1-1', text: '称', pinyin: 'chēng', example: '称，称重的称', type: 'character', grade: 2 },
+      { id: '2-3-1-2', text: '象', pinyin: 'xiàng', example: '象，大象的象', type: 'character', grade: 2 },
+      { id: '2-3-1-3', text: '官', pinyin: 'guān', example: '官，官员的官', type: 'character', grade: 2 },
+      { id: '2-3-1-4', text: '柱', pinyin: 'zhù', example: '柱，柱子的柱', type: 'character', grade: 2 },
+      { id: '2-3-1-5', text: '底', pinyin: 'dǐ', example: '底，底部的底', type: 'character', grade: 2 },
+      { id: '2-3-1-6', text: '杆', pinyin: 'gān', example: '杆，旗杆的杆', type: 'character', grade: 2 },
+      { id: '2-3-1-7', text: '秤', pinyin: 'chèng', example: '秤，秤砣的秤', type: 'character', grade: 2 },
+      { id: '2-3-1-8', text: '做', pinyin: 'zuò', example: '做，做事的做', type: 'character', grade: 2 },
+      { id: '2-3-1-9', text: '岁', pinyin: 'suì', example: '岁，岁数的岁', type: 'character', grade: 2 },
+      { id: '2-3-1-10', text: '站', pinyin: 'zhàn', example: '站，站立的站', type: 'character', grade: 2 },
+    ],
+  },
 ];
 
-export const grade3Words: Word[] = [
-  { id: '3-1', text: '春', pinyin: 'chūn', example: '春，春天的春', type: 'character', grade: 3 },
-  { id: '3-2', text: '夏', pinyin: 'xià', example: '夏，夏天的夏', type: 'character', grade: 3 },
-  { id: '3-3', text: '秋', pinyin: 'qiū', example: '秋，秋天的秋', type: 'character', grade: 3 },
-  { id: '3-4', text: '冬', pinyin: 'dōng', example: '冬，冬天的冬', type: 'character', grade: 3 },
-  { id: '3-5', text: '花', pinyin: 'huā', example: '花，花朵的花', type: 'character', grade: 3 },
-  { id: '3-6', text: '草', pinyin: 'cǎo', example: '草，小草的草', type: 'character', grade: 3 },
-  { id: '3-7', text: '树', pinyin: 'shù', example: '树，树木的树', type: 'character', grade: 3 },
-  { id: '3-8', text: '林', pinyin: 'lín', example: '林，森林的林', type: 'character', grade: 3 },
-  { id: '3-9', text: '森', pinyin: 'sēn', example: '森，森林的森', type: 'character', grade: 3 },
-  { id: '3-10', text: '鸟', pinyin: 'niǎo', example: '鸟，小鸟的鸟', type: 'character', grade: 3 },
-  { id: '3-11', text: '虫', pinyin: 'chóng', example: '虫，昆虫的虫', type: 'character', grade: 3 },
-  { id: '3-12', text: '鱼', pinyin: 'yú', example: '鱼，小鱼的鱼', type: 'character', grade: 3 },
-  { id: '3-13', text: '马', pinyin: 'mǎ', example: '马，小马的马', type: 'character', grade: 3 },
-  { id: '3-14', text: '牛', pinyin: 'niú', example: '牛，水牛的牛', type: 'character', grade: 3 },
-  { id: '3-15', text: '羊', pinyin: 'yáng', example: '羊，小羊的羊', type: 'character', grade: 3 },
-  { id: '3-16', text: '猪', pinyin: 'zhū', example: '猪，小猪的猪', type: 'character', grade: 3 },
-  { id: '3-17', text: '狗', pinyin: 'gǒu', example: '狗，小狗的狗', type: 'character', grade: 3 },
-  { id: '3-18', text: '猫', pinyin: 'māo', example: '猫，小猫的猫', type: 'character', grade: 3 },
-  { id: '3-19', text: '兔', pinyin: 'tù', example: '兔，小兔的兔', type: 'character', grade: 3 },
-  { id: '3-20', text: '飞', pinyin: 'fēi', example: '飞，飞机的飞', type: 'character', grade: 3 },
-  { id: '3-21', text: '跑', pinyin: 'pǎo', example: '跑，跑步的跑', type: 'character', grade: 3 },
-  { id: '3-22', text: '跳', pinyin: 'tiào', example: '跳，跳高的跳', type: 'character', grade: 3 },
-  { id: '3-23', text: '游', pinyin: 'yóu', example: '游，游泳的游', type: 'character', grade: 3 },
-  { id: '3-24', text: '走', pinyin: 'zǒu', example: '走，走路的走', type: 'character', grade: 3 },
-  { id: '3-25', text: '来', pinyin: 'lái', example: '来，来往的来', type: 'character', grade: 3 },
-  { id: '3-26', text: '去', pinyin: 'qù', example: '去，来去的去', type: 'character', grade: 3 },
-  { id: '3-27', text: '看', pinyin: 'kàn', example: '看，看书的看', type: 'character', grade: 3 },
-  { id: '3-28', text: '听', pinyin: 'tīng', example: '听，听写的听', type: 'character', grade: 3 },
-  { id: '3-29', text: '说', pinyin: 'shuō', example: '说，说话的说', type: 'character', grade: 3 },
-  { id: '3-30', text: '读', pinyin: 'dú', example: '读，读书的读', type: 'character', grade: 3 },
+export const grade3Lessons: Lesson[] = [
+  {
+    id: '3-1-1',
+    title: '大青树下的小学',
+    grade: 3,
+    unit: 1,
+    words: [
+      { id: '3-1-1-1', text: '晨', pinyin: 'chén', example: '晨，早晨的晨', type: 'character', grade: 3 },
+      { id: '3-1-1-2', text: '绒', pinyin: 'róng', example: '绒，绒毛的绒', type: 'character', grade: 3 },
+      { id: '3-1-1-3', text: '球', pinyin: 'qiú', example: '球，皮球的球', type: 'character', grade: 3 },
+      { id: '3-1-1-4', text: '汉', pinyin: 'hàn', example: '汉，汉族的汉', type: 'character', grade: 3 },
+      { id: '3-1-1-5', text: '艳', pinyin: 'yàn', example: '艳，艳丽的艳', type: 'character', grade: 3 },
+      { id: '3-1-1-6', text: '服', pinyin: 'fú', example: '服，衣服的服', type: 'character', grade: 3 },
+      { id: '3-1-1-7', text: '装', pinyin: 'zhuāng', example: '装，服装的装', type: 'character', grade: 3 },
+      { id: '3-1-1-8', text: '扮', pinyin: 'bàn', example: '扮，打扮的扮', type: 'character', grade: 3 },
+      { id: '3-1-1-9', text: '读', pinyin: 'dú', example: '读，读书的读', type: 'character', grade: 3 },
+      { id: '3-1-1-10', text: '静', pinyin: 'jìng', example: '静，安静的静', type: 'character', grade: 3 },
+    ],
+  },
+  {
+    id: '3-1-2',
+    title: '花的学校',
+    grade: 3,
+    unit: 1,
+    words: [
+      { id: '3-1-2-1', text: '落', pinyin: 'luò', example: '落，落下的落', type: 'character', grade: 3 },
+      { id: '3-1-2-2', text: '荒', pinyin: 'huāng', example: '荒，荒野的荒', type: 'character', grade: 3 },
+      { id: '3-1-2-3', text: '笛', pinyin: 'dí', example: '笛，笛子的笛', type: 'character', grade: 3 },
+      { id: '3-1-2-4', text: '舞', pinyin: 'wǔ', example: '舞，跳舞的舞', type: 'character', grade: 3 },
+      { id: '3-1-2-5', text: '狂', pinyin: 'kuáng', example: '狂，狂欢的狂', type: 'character', grade: 3 },
+      { id: '3-1-2-6', text: '罚', pinyin: 'fá', example: '罚，惩罚的罚', type: 'character', grade: 3 },
+      { id: '3-1-2-7', text: '假', pinyin: 'jià', example: '假，放假的假', type: 'character', grade: 3 },
+      { id: '3-1-2-8', text: '互', pinyin: 'hù', example: '互，互相的互', type: 'character', grade: 3 },
+      { id: '3-1-2-9', text: '所', pinyin: 'suǒ', example: '所，所以的所', type: 'character', grade: 3 },
+      { id: '3-1-2-10', text: '够', pinyin: 'gòu', example: '够，足够的够', type: 'character', grade: 3 },
+    ],
+  },
+  {
+    id: '3-2-1',
+    title: '古诗三首',
+    grade: 3,
+    unit: 2,
+    words: [
+      { id: '3-2-1-1', text: '寒', pinyin: 'hán', example: '寒，寒冷的寒', type: 'character', grade: 3 },
+      { id: '3-2-1-2', text: '径', pinyin: 'jìng', example: '径，小径的径', type: 'character', grade: 3 },
+      { id: '3-2-1-3', text: '斜', pinyin: 'xié', example: '斜，倾斜的斜', type: 'character', grade: 3 },
+      { id: '3-2-1-4', text: '赠', pinyin: 'zèng', example: '赠，赠送的赠', type: 'character', grade: 3 },
+      { id: '3-2-1-5', text: '刘', pinyin: 'liú', example: '刘，姓刘的刘', type: 'character', grade: 3 },
+      { id: '3-2-1-6', text: '残', pinyin: 'cán', example: '残，残阳的残', type: 'character', grade: 3 },
+      { id: '3-2-1-7', text: '君', pinyin: 'jūn', example: '君，君子的君', type: 'character', grade: 3 },
+      { id: '3-2-1-8', text: '橙', pinyin: 'chéng', example: '橙，橙子的橙', type: 'character', grade: 3 },
+      { id: '3-2-1-9', text: '送', pinyin: 'sòng', example: '送，送别的送', type: 'character', grade: 3 },
+      { id: '3-2-1-10', text: '挑', pinyin: 'tiāo', example: '挑，挑水的挑', type: 'character', grade: 3 },
+    ],
+  },
 ];
 
-export const grade4Words: Word[] = [
-  { id: '4-1', text: '爱', pinyin: 'ài', example: '爱，友爱的爱', type: 'character', grade: 4 },
-  { id: '4-2', text: '心', pinyin: 'xīn', example: '心，用心的心', type: 'character', grade: 4 },
-  { id: '4-3', text: '思', pinyin: 'sī', example: '思，思念的思', type: 'character', grade: 4 },
-  { id: '4-4', text: '想', pinyin: 'xiǎng', example: '想，想念的想', type: 'character', grade: 4 },
-  { id: '4-5', text: '知', pinyin: 'zhī', example: '知，知识的知', type: 'character', grade: 4 },
-  { id: '4-6', text: '道', pinyin: 'dào', example: '道，道路的道', type: 'character', grade: 4 },
-  { id: '4-7', text: '学', pinyin: 'xué', example: '学，学习的学', type: 'character', grade: 4 },
-  { id: '4-8', text: '习', pinyin: 'xí', example: '习，学习的习', type: 'character', grade: 4 },
-  { id: '4-9', text: '读', pinyin: 'dú', example: '读，读书的读', type: 'character', grade: 4 },
-  { id: '4-10', text: '书', pinyin: 'shū', example: '书，读书的书', type: 'character', grade: 4 },
-  { id: '4-11', text: '写', pinyin: 'xiě', example: '写，写字的写', type: 'character', grade: 4 },
-  { id: '4-12', text: '字', pinyin: 'zì', example: '字，汉字的字', type: 'character', grade: 4 },
-  { id: '4-13', text: '词', pinyin: 'cí', example: '词，词语的词', type: 'character', grade: 4 },
-  { id: '4-14', text: '语', pinyin: 'yǔ', example: '语，语文的语', type: 'character', grade: 4 },
-  { id: '4-15', text: '文', pinyin: 'wén', example: '文，语文的文', type: 'character', grade: 4 },
-  { id: '4-16', text: '作', pinyin: 'zuò', example: '作，作业的作', type: 'character', grade: 4 },
-  { id: '4-17', text: '堂', pinyin: 'táng', example: '堂，课堂的堂', type: 'character', grade: 4 },
-  { id: '4-18', text: '课', pinyin: 'kè', example: '课，上课的课', type: 'character', grade: 4 },
-  { id: '4-19', text: '间', pinyin: 'jiān', example: '间，时间の間', type: 'character', grade: 4 },
-  { id: '4-20', text: '时', pinyin: 'shí', example: '时，时间的时', type: 'character', grade: 4 },
-  { id: '4-21', text: '年', pinyin: 'nián', example: '年，过年的年', type: 'character', grade: 4 },
-  { id: '4-22', text: '月', pinyin: 'yuè', example: '月，月份月', type: 'character', grade: 4 },
-  { id: '4-23', text: '日', pinyin: 'rì', example: '日，日子的日', type: 'character', grade: 4 },
-  { id: '4-24', text: '星', pinyin: 'xīng', example: '星，星星的星', type: 'character', grade: 4 },
-  { id: '4-25', text: '期', pinyin: 'qī', example: '期，星期的期', type: 'character', grade: 4 },
-  { id: '4-26', text: '天', pinyin: 'tiān', example: '天，天空的天', type: 'character', grade: 4 },
-  { id: '4-27', text: '气', pinyin: 'qì', example: '气，天气的气', type: 'character', grade: 4 },
-  { id: '4-28', text: '温', pinyin: 'wēn', example: '温，温暖的温', type: 'character', grade: 4 },
-  { id: '4-29', text: '暖', pinyin: 'nuǎn', example: '暖，暖和的暖', type: 'character', grade: 4 },
-  { id: '4-30', text: '凉', pinyin: 'liáng', example: '凉，凉快的凉', type: 'character', grade: 4 },
+export const grade4Lessons: Lesson[] = [
+  {
+    id: '4-1-1',
+    title: '观潮',
+    grade: 4,
+    unit: 1,
+    words: [
+      { id: '4-1-1-1', text: '潮', pinyin: 'cháo', example: '潮，潮水的潮', type: 'character', grade: 4 },
+      { id: '4-1-1-2', text: '据', pinyin: 'jù', example: '据，根据的据', type: 'character', grade: 4 },
+      { id: '4-1-1-3', text: '堤', pinyin: 'dī', example: '堤，堤坝的堤', type: 'character', grade: 4 },
+      { id: '4-1-1-4', text: '阔', pinyin: 'kuò', example: '阔，宽阔的阔', type: 'character', grade: 4 },
+      { id: '4-1-1-5', text: '笼', pinyin: 'lóng', example: '笼，笼罩的笼', type: 'character', grade: 4 },
+      { id: '4-1-1-6', text: '罩', pinyin: 'zhào', example: '罩，罩住的罩', type: 'character', grade: 4 },
+      { id: '4-1-1-7', text: '盼', pinyin: 'pàn', example: '盼，盼望的盼', type: 'character', grade: 4 },
+      { id: '4-1-1-8', text: '滚', pinyin: 'gǔn', example: '滚，滚动的滚', type: 'character', grade: 4 },
+      { id: '4-1-1-9', text: '顿', pinyin: 'dùn', example: '顿，顿时的顿', type: 'character', grade: 4 },
+      { id: '4-1-1-10', text: '逐', pinyin: 'zhú', example: '逐，追逐的逐', type: 'character', grade: 4 },
+    ],
+  },
+  {
+    id: '4-1-2',
+    title: '走月亮',
+    grade: 4,
+    unit: 1,
+    words: [
+      { id: '4-1-2-1', text: '牵', pinyin: 'qiān', example: '牵，牵手的牵', type: 'character', grade: 4 },
+      { id: '4-1-2-2', text: '鹅', pinyin: 'é', example: '鹅，天鹅的鹅', type: 'character', grade: 4 },
+      { id: '4-1-2-3', text: '卵', pinyin: 'luǎn', example: '卵，鸟卵的卵', type: 'character', grade: 4 },
+      { id: '4-1-2-4', text: '俗', pinyin: 'sú', example: '俗，风俗的俗', type: 'character', grade: 4 },
+      { id: '4-1-2-5', text: '跃', pinyin: 'yuè', example: '跃，跳跃的跃', type: 'character', grade: 4 },
+      { id: '4-1-2-6', text: '穗', pinyin: 'suì', example: '穗，稻穗的穗', type: 'character', grade: 4 },
+      { id: '4-1-2-7', text: '镀', pinyin: 'dù', example: '镀，镀金的镀', type: 'character', grade: 4 },
+      { id: '4-1-2-8', text: '埂', pinyin: 'gěng', example: '埂，田埂的埂', type: 'character', grade: 4 },
+      { id: '4-1-2-9', text: '烁', pinyin: 'shuò', example: '烁，闪烁的烁', type: 'character', grade: 4 },
+      { id: '4-1-2-10', text: '眠', pinyin: 'mián', example: '眠，睡眠的眠', type: 'character', grade: 4 },
+    ],
+  },
 ];
 
-export const grade5Words: Word[] = [
-  { id: '5-1', text: '祖', pinyin: 'zǔ', example: '祖，祖国的祖', type: 'character', grade: 5 },
-  { id: '5-2', text: '国', pinyin: 'guó', example: '国，祖国的国', type: 'character', grade: 5 },
-  { id: '5-3', text: '友', pinyin: 'yǒu', example: '友，友谊的友', type: 'character', grade: 5 },
-  { id: '5-4', text: '谊', pinyin: 'yì', example: '谊，友谊的谊', type: 'character', grade: 5 },
-  { id: '5-5', text: '团', pinyin: 'tuán', example: '团，团队的团', type: 'character', grade: 5 },
-  { id: '5-6', text: '结', pinyin: 'jié', example: '结，团结的结', type: 'character', grade: 5 },
-  { id: '5-7', text: '进', pinyin: 'jìn', example: '进，进步的进', type: 'character', grade: 5 },
-  { id: '5-8', text: '步', pinyin: 'bù', example: '步，进步的步', type: 'character', grade: 5 },
-  { id: '5-9', text: '勤', pinyin: 'qín', example: '勤，勤劳的勤', type: 'character', grade: 5 },
-  { id: '5-10', text: '劳', pinyin: 'láo', example: '劳，勤劳的劳', type: 'character', grade: 5 },
-  { id: '5-11', text: '勇敢', pinyin: 'yǒng gǎn', example: '勇敢，勇敢的战士', type: 'word', grade: 5 },
-  { id: '5-12', text: '善良', pinyin: 'shàn liáng', example: '善良，善良的人', type: 'word', grade: 5 },
-  { id: '5-13', text: '诚实', pinyin: 'chéng shí', example: '诚实，诚实的孩子', type: 'word', grade: 5 },
-  { id: '5-14', text: '守信', pinyin: 'shǒu xìn', example: '守信，守信的朋友', type: 'word', grade: 5 },
-  { id: '5-15', text: '认真', pinyin: 'rèn zhēn', example: '认真，认真学习', type: 'word', grade: 5 },
-  { id: '5-16', text: '快乐', pinyin: 'kuài lè', example: '快乐，快乐的生活', type: 'word', grade: 5 },
-  { id: '5-17', text: '高兴', pinyin: 'gāo xìng', example: '高兴，我很高兴', type: 'word', grade: 5 },
-  { id: '5-18', text: '美丽', pinyin: 'měi lì', example: '美丽，美丽的风景', type: 'word', grade: 5 },
-  { id: '5-19', text: '漂亮', pinyin: 'piào liang', example: '漂亮，漂亮的衣服', type: 'word', grade: 5 },
-  { id: '5-20', text: '优秀', pinyin: 'yōu xiù', example: '优秀，优秀的学生', type: 'word', grade: 5 },
-  { id: '5-21', text: '学习', pinyin: 'xué xí', example: '学习，好好学习', type: 'word', grade: 5 },
-  { id: '5-22', text: '读书', pinyin: 'dú shū', example: '读书，我喜欢读书', type: 'word', grade: 5 },
-  { id: '5-23', text: '写字', pinyin: 'xiě zì', example: '写字，认真写字', type: 'word', grade: 5 },
-  { id: '5-24', text: '听写', pinyin: 'tīng xiě', example: '听写，进行听写', type: 'word', grade: 5 },
-  { id: '5-25', text: '考试', pinyin: 'kǎo shì', example: '考试，认真考试', type: 'word', grade: 5 },
+export const grade5Lessons: Lesson[] = [
+  {
+    id: '5-1-1',
+    title: '白鹭',
+    grade: 5,
+    unit: 1,
+    words: [
+      { id: '5-1-1-1', text: '鹭', pinyin: 'lù', example: '鹭，白鹭的鹭', type: 'character', grade: 5 },
+      { id: '5-1-1-2', text: '嫌', pinyin: 'xián', example: '嫌，嫌弃的嫌', type: 'character', grade: 5 },
+      { id: '5-1-1-3', text: '喙', pinyin: 'huì', example: '喙，鸟喙的喙', type: 'character', grade: 5 },
+      { id: '5-1-1-4', text: '嵌', pinyin: 'qiàn', example: '嵌，镶嵌的嵌', type: 'character', grade: 5 },
+      { id: '5-1-1-5', text: '匣', pinyin: 'xiá', example: '匣，匣子的匣', type: 'character', grade: 5 },
+      { id: '5-1-1-6', text: '嗜', pinyin: 'shì', example: '嗜，嗜好的嗜', type: 'character', grade: 5 },
+      { id: '5-1-1-7', text: '澄', pinyin: 'chéng', example: '澄，澄澈的澄', type: 'character', grade: 5 },
+      { id: '5-1-1-8', text: '黛', pinyin: 'dài', example: '黛，黛色的黛', type: 'character', grade: 5 },
+    ],
+  },
+  {
+    id: '5-1-2',
+    title: '落花生',
+    grade: 5,
+    unit: 1,
+    words: [
+      { id: '5-1-2-1', text: '亩', pinyin: 'mǔ', example: '亩，亩数的亩', type: 'character', grade: 5 },
+      { id: '5-1-2-2', text: '吩', pinyin: 'fēn', example: '吩，吩咐的吩', type: 'character', grade: 5 },
+      { id: '5-1-2-3', text: '咐', pinyin: 'fù', example: '咐，吩咐的咐', type: 'character', grade: 5 },
+      { id: '5-1-2-4', text: '茅', pinyin: 'máo', example: '茅，茅草的茅', type: 'character', grade: 5 },
+      { id: '5-1-2-5', text: '榨', pinyin: 'zhà', example: '榨，榨油的榨', type: 'character', grade: 5 },
+      { id: '5-1-2-6', text: '榴', pinyin: 'liú', example: '榴，石榴的榴', type: 'character', grade: 5 },
+    ],
+  },
 ];
 
-export const grade6Words: Word[] = [
-  { id: '6-1', text: '理想', pinyin: 'lǐ xiǎng', example: '理想，我的理想', type: 'word', grade: 6 },
-  { id: '6-2', text: '目标', pinyin: 'mù biāo', example: '目标，设定目标', type: 'word', grade: 6 },
-  { id: '6-3', text: '努力', pinyin: 'nǔ lì', example: '努力，努力学习', type: 'word', grade: 6 },
-  { id: '6-4', text: '奋斗', pinyin: 'fèn dòu', example: '奋斗，为理想奋斗', type: 'word', grade: 6 },
-  { id: '6-5', text: '成功', pinyin: 'chéng gōng', example: '成功，走向成功', type: 'word', grade: 6 },
-  { id: '6-6', text: '失败', pinyin: 'shī bài', example: '失败，失败是成功之母', type: 'word', grade: 6 },
-  { id: '6-7', text: '坚持', pinyin: 'jiān chí', example: '坚持，坚持不懈', type: 'word', grade: 6 },
-  { id: '6-8', text: '坚强', pinyin: 'jiān qiáng', example: '坚强，要坚强', type: 'word', grade: 6 },
-  { id: '6-9', text: '自信', pinyin: 'zì xìn', example: '自信，要有自信', type: 'word', grade: 6 },
-  { id: '6-10', text: '谦虚', pinyin: 'qiān xū', example: '谦虚，谦虚使人进步', type: 'word', grade: 6 },
-  { id: '6-11', text: '骄傲', pinyin: 'jiāo ào', example: '骄傲，不能骄傲', type: 'word', grade: 6 },
-  { id: '6-12', text: '诚实', pinyin: 'chéng shí', example: '诚实，做人要诚实', type: 'word', grade: 6 },
-  { id: '6-13', text: '善良', pinyin: 'shàn liáng', example: '善良，做一个善良的人', type: 'word', grade: 6 },
-  { id: '6-14', text: '友爱', pinyin: 'yǒu ài', example: '友爱，同学之间要友爱', type: 'word', grade: 6 },
-  { id: '6-15', text: '帮助', pinyin: 'bāng zhù', example: '帮助，互相帮助', type: 'word', grade: 6 },
-  { id: '6-16', text: '感谢', pinyin: 'gǎn xiè', example: '感谢，感谢老师', type: 'word', grade: 6 },
-  { id: '6-17', text: '关心', pinyin: 'guān xīn', example: '关心，关心他人', type: 'word', grade: 6 },
-  { id: '6-18', text: '爱护', pinyin: 'ài hù', example: '爱护，爱护公物', type: 'word', grade: 6 },
-  { id: '6-19', text: '保护', pinyin: 'bǎo hù', example: '保护，保护环境', type: 'word', grade: 6 },
-  { id: '6-20', text: '环境', pinyin: 'huán jìng', example: '环境，保护环境', type: 'word', grade: 6 },
-  { id: '6-21', text: '自然', pinyin: 'zì rán', example: '自然，亲近自然', type: 'word', grade: 6 },
-  { id: '6-22', text: '科学', pinyin: 'kē xué', example: '科学，学习科学', type: 'word', grade: 6 },
-  { id: '6-23', text: '技术', pinyin: 'jì shù', example: '技术，学习技术', type: 'word', grade: 6 },
-  { id: '6-24', text: '发展', pinyin: 'fā zhǎn', example: '发展，社会发展', type: 'word', grade: 6 },
-  { id: '6-25', text: '和平', pinyin: 'hé píng', example: '和平，世界和平', type: 'word', grade: 6 },
+export const grade6Lessons: Lesson[] = [
+  {
+    id: '6-1-1',
+    title: '草原',
+    grade: 6,
+    unit: 1,
+    words: [
+      { id: '6-1-1-1', text: '毯', pinyin: 'tǎn', example: '毯，地毯的毯', type: 'character', grade: 6 },
+      { id: '6-1-1-2', text: '陈', pinyin: 'chén', example: '陈，陈列的陈', type: 'character', grade: 6 },
+      { id: '6-1-1-3', text: '裳', pinyin: 'cháng', example: '裳，衣裳的裳', type: 'character', grade: 6 },
+      { id: '6-1-1-4', text: '虹', pinyin: 'hóng', example: '虹，彩虹的虹', type: 'character', grade: 6 },
+      { id: '6-1-1-5', text: '蹄', pinyin: 'tí', example: '蹄，马蹄的蹄', type: 'character', grade: 6 },
+      { id: '6-1-1-6', text: '腐', pinyin: 'fǔ', example: '腐，腐败的腐', type: 'character', grade: 6 },
+      { id: '6-1-1-7', text: '稍', pinyin: 'shāo', example: '稍，稍微的稍', type: 'character', grade: 6 },
+      { id: '6-1-1-8', text: '微', pinyin: 'wēi', example: '微，微笑的微', type: 'character', grade: 6 },
+    ],
+  },
+  {
+    id: '6-1-2',
+    title: '丁香结',
+    grade: 6,
+    unit: 1,
+    words: [
+      { id: '6-1-2-1', text: '缀', pinyin: 'zhuì', example: '缀，点缀的缀', type: 'character', grade: 6 },
+      { id: '6-1-2-2', text: '幽', pinyin: 'yōu', example: '幽，幽静的幽', type: 'character', grade: 6 },
+      { id: '6-1-2-3', text: '雅', pinyin: 'yǎ', example: '雅，优雅的雅', type: 'character', grade: 6 },
+      { id: '6-1-2-4', text: '案', pinyin: 'àn', example: '案，案件的案', type: 'character', grade: 6 },
+      { id: '6-1-2-5', text: '拙', pinyin: 'zhuō', example: '拙，笨拙的拙', type: 'character', grade: 6 },
+      { id: '6-1-2-6', text: '薄', pinyin: 'bó', example: '薄，单薄的薄', type: 'character', grade: 6 },
+    ],
+  },
 ];
 
-export const sentenceData: { text: string; pinyin: string; grade: number }[] = [
-  { text: '我爱中国。', pinyin: 'wǒ ài zhōng guó', grade: 1 },
-  { text: '我是小学生。', pinyin: 'wǒ shì xiǎo xué shēng', grade: 1 },
-  { text: '我爱我的学校。', pinyin: 'wǒ ài wǒ de xué xiào', grade: 2 },
-  { text: '春天来了，花儿开了。', pinyin: 'chūn tiān lái le, huā ér kāi le', grade: 3 },
-  { text: '我们要好好学习，天天向上。', pinyin: 'wǒ men yào hǎo hǎo xué xí, tiān tiān xiàng shàng', grade: 4 },
-  { text: '读书使人明智。', pinyin: 'dú shū shǐ rén míng zhì', grade: 5 },
-  { text: '有志者事竟成。', pinyin: 'yǒu zhì zhě shì jìng chéng', grade: 6 },
-  { text: '学习如逆水行舟，不进则退。', pinyin: 'xué xí rú nì shuǐ xíng zhōu, bú jìn zé tuì', grade: 6 },
-  { text: '书山有路勤为径，学海无涯苦作舟。', pinyin: 'shū shān yǒu lù qín wéi jìng, xué hǎi wú yá kǔ zuò zhōu', grade: 6 },
-  { text: '少年强则国强。', pinyin: 'shào nián qiáng zé guó qiáng', grade: 6 },
-];
+export const getLessonsByGrade = (grade: number): Lesson[] => {
+  switch (grade) {
+    case 1: return grade1Lessons;
+    case 2: return grade2Lessons;
+    case 3: return grade3Lessons;
+    case 4: return grade4Lessons;
+    case 5: return grade5Lessons;
+    case 6: return grade6Lessons;
+    default: return [...grade1Lessons, ...grade2Lessons];
+  }
+};
+
+export const getWordsByLesson = (lessonId: string): Word[] => {
+  const allLessons = [
+    ...grade1Lessons,
+    ...grade2Lessons,
+    ...grade3Lessons,
+    ...grade4Lessons,
+    ...grade5Lessons,
+    ...grade6Lessons,
+  ];
+  const lesson = allLessons.find(l => l.id === lessonId);
+  return lesson ? lesson.words : [];
+};
 
 export const getWordsByGrade = (grade: number): Word[] => {
-  switch (grade) {
-    case 1: return grade1Words;
-    case 2: return grade2Words;
-    case 3: return grade3Words;
-    case 4: return grade4Words;
-    case 5: return grade5Words;
-    case 6: return grade6Words;
-    default: return [...grade1Words, ...grade2Words];
-  }
+  const lessons = getLessonsByGrade(grade);
+  return lessons.flatMap(l => l.words);
 };
 
 export const getAllWords = (): Word[] => {
   return [
-    ...grade1Words,
-    ...grade2Words,
-    ...grade3Words,
-    ...grade4Words,
-    ...grade5Words,
-    ...grade6Words,
+    ...getWordsByGrade(1),
+    ...getWordsByGrade(2),
+    ...getWordsByGrade(3),
+    ...getWordsByGrade(4),
+    ...getWordsByGrade(5),
+    ...getWordsByGrade(6),
   ];
 };
 
 export const getSentences = (grade?: number) => {
+  const sentenceData: { text: string; pinyin: string; grade: number }[] = [
+    { text: '我爱中国。', pinyin: 'wǒ ài zhōng guó', grade: 1 },
+    { text: '我是小学生。', pinyin: 'wǒ shì xiǎo xué shēng', grade: 1 },
+    { text: '我爱我的学校。', pinyin: 'wǒ ài wǒ de xué xiào', grade: 2 },
+    { text: '春天来了，花儿开了。', pinyin: 'chūn tiān lái le, huā ér kāi le', grade: 3 },
+    { text: '我们要好好学习，天天向上。', pinyin: 'wǒ men yào hǎo hǎo xué xí, tiān tiān xiàng shàng', grade: 4 },
+    { text: '读书使人明智。', pinyin: 'dú shū shǐ rén míng zhì', grade: 5 },
+    { text: '有志者事竟成。', pinyin: 'yǒu zhì zhě shì jìng chéng', grade: 6 },
+    { text: '学习如逆水行舟，不进则退。', pinyin: 'xué xí rú nì shuǐ xíng zhōu, bú jìn zé tuì', grade: 6 },
+    { text: '书山有路勤为径，学海无涯苦作舟。', pinyin: 'shū shān yǒu lù qín wéi jìng, xué hǎi wú yá kǔ zuò zhōu', grade: 6 },
+    { text: '少年强则国强。', pinyin: 'shào nián qiáng zé guó qiáng', grade: 6 },
+  ];
+  
   if (grade) {
     return sentenceData.filter(s => s.grade === grade);
   }

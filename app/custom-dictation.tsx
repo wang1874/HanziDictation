@@ -13,13 +13,11 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSpeech } from '../src/hooks/useSpeech';
-import DrawingCanvas from '../src/components/DrawingCanvas';
-
-type InputMode = 'paper' | 'handwriting';
 
 interface CustomWord {
   text: string;
   pinyin: string;
+  example: string;
 }
 
 const pinyinMap: Record<string, string> = {
@@ -46,12 +44,39 @@ const pinyinMap: Record<string, string> = {
   '期': 'qī', '气': 'qì', '温': 'wēn', '暖': 'nuǎn', '凉': 'liáng',
 };
 
+const commonWords: Record<string, string> = {
+  '国': '国家', '人': '人们', '学': '学习', '校': '学校', '老': '老师',
+  '生': '学生', '天': '天空', '地': '大地', '中': '中国', '山': '高山',
+  '水': '河水', '火': '火焰', '风': '大风', '雨': '下雨', '花': '花朵',
+  '树': '树木', '草': '草地', '鸟': '小鸟', '虫': '虫子', '鱼': '鱼儿',
+  '马': '大马', '牛': '黄牛', '羊': '山羊', '猪': '小猪', '狗': '小狗',
+  '猫': '小猫', '日': '日月', '月': '月亮', '云': '白云', '雪': '雪花',
+  '春': '春天', '夏': '夏天', '秋': '秋天', '冬': '冬天', '爱': '爱心',
+  '心': '心情', '手': '双手', '口': '人口', '耳': '耳朵', '目': '目光',
+  '上': '上面', '下': '下面', '大': '大人', '小': '小孩', '多': '多少',
+  '少': '少数', '前': '前面', '后': '后面', '左': '左边', '右': '右边',
+  '来': '来到', '去': '回去', '看': '看见', '听': '听见', '说': '说话',
+  '读': '读书', '写': '写字', '想': '想法', '思': '思考', '知': '知识',
+  '道': '道路', '习': '习惯', '作': '作业', '词': '词语', '课': '上课',
+};
+
+const getExample = (text: string): string => {
+  if (text.length === 1) {
+    const commonWord = commonWords[text];
+    if (commonWord) {
+      return `${text}，${commonWord}的${text}`;
+    }
+    return `${text}，${text}${text}的${text}`;
+  } else {
+    return `${text}，${text}`;
+  }
+};
+
 export default function CustomDictationPage() {
   const { speak, stop } = useSpeech();
   const [inputText, setInputText] = useState('');
   const [words, setWords] = useState<CustomWord[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [inputMode, setInputMode] = useState<InputMode>('paper');
   const [showResult, setShowResult] = useState(false);
   const [knownCount, setKnownCount] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
@@ -77,6 +102,7 @@ export default function CustomDictationPage() {
       .map((w) => ({
         text: w,
         pinyin: getPinyin(w),
+        example: getExample(w),
       }));
   }, []);
 
@@ -94,13 +120,12 @@ export default function CustomDictationPage() {
     setIsStarted(true);
     setCurrentIndex(0);
     setKnownCount(0);
-    setInputMode('paper');
   }, [inputText, parseWords]);
 
   const speakCurrentWord = useCallback(() => {
     if (words.length > 0 && currentIndex < words.length) {
       const word = words[currentIndex];
-      const toSpeak = `${word.text}，${word.text}`;
+      const toSpeak = word.example || word.text;
       speak(toSpeak);
     }
   }, [words, currentIndex, speak]);
@@ -213,36 +238,11 @@ export default function CustomDictationPage() {
         <Text style={styles.progress}>{currentIndex + 1}/{words.length}</Text>
       </View>
 
-      <View style={styles.inputModeBar}>
-        <TouchableOpacity
-          style={[styles.inputModeBtn, inputMode === 'paper' && styles.inputModeBtnActive]}
-          onPress={() => setInputMode('paper')}
-        >
-          <Text style={[styles.inputModeText, inputMode === 'paper' && styles.inputModeTextActive]}>
-            📝 纸上听写
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.inputModeBtn, inputMode === 'handwriting' && styles.inputModeBtnActive]}
-          onPress={() => setInputMode('handwriting')}
-        >
-          <Text style={[styles.inputModeText, inputMode === 'handwriting' && styles.inputModeTextActive]}>
-            ✍️ 屏幕手写
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       <View style={styles.speakSection}>
         <TouchableOpacity style={styles.speakButton} onPress={handleReSpeak}>
           <Text style={styles.speakButtonText}>🔊 再听一遍</Text>
         </TouchableOpacity>
       </View>
-
-      {inputMode === 'handwriting' && (
-        <View style={styles.canvasSection}>
-          <DrawingCanvas onTextRecognized={() => {}} />
-        </View>
-      )}
 
       <View style={styles.navButtons}>
         <TouchableOpacity
@@ -366,32 +366,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  inputModeBar: {
-    flexDirection: 'row',
-    padding: 12,
-    gap: 12,
-    backgroundColor: '#FFF',
-  },
-  inputModeBtn: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#FDF5E6',
-    borderWidth: 2,
-    borderColor: '#8B0000',
-    alignItems: 'center',
-  },
-  inputModeBtnActive: {
-    backgroundColor: '#8B0000',
-  },
-  inputModeText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#8B0000',
-  },
-  inputModeTextActive: {
-    color: '#FFF',
-  },
   speakSection: {
     padding: 16,
   },
@@ -407,10 +381,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#8B0000',
-  },
-  canvasSection: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
   },
   navButtons: {
     flexDirection: 'row',

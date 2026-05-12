@@ -9,23 +9,21 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSpeech } from '../src/hooks/useSpeech';
-import DrawingCanvas from '../src/components/DrawingCanvas';
 
 type DictationMode = 'character' | 'word' | 'sentence';
-type InputMode = 'paper' | 'handwriting';
 
 export default function DictationPage() {
-  const { grade, mode } = useLocalSearchParams<{
+  const { grade, mode, lessonId } = useLocalSearchParams<{
     grade: string;
     mode: string;
+    lessonId?: string;
   }>();
   const { speak, stop, setRepeatCount } = useSpeech();
 
   const [dictationMode, setDictationMode] = useState<DictationMode>('character');
-  const [inputMode, setInputMode] = useState<InputMode>('paper');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showResult, setShowResult] = useState(false);
-  const [knownWords, setKnownWords] = useState<number>(0);
+  const [knownWords, setKnownWords] = useState(0);
   const [repeatCount] = useState(2);
   const [dictationItems, setDictationItems] = useState<{
     text: string;
@@ -38,12 +36,11 @@ export default function DictationPage() {
       const gradeNum = parseInt(grade || '3', 10);
       const modeValue = mode || 'character';
       setDictationMode(modeValue as DictationMode);
-      setInputMode('paper');
       setRepeatCount(repeatCount);
       
       let data: { text: string; pinyin: string; example: string }[] = [];
       
-      const { getWordsByGrade, getSentences } = await import('../src/data/wordDatabase');
+      const { getWordsByGrade, getWordsByLesson, getSentences } = await import('../src/data/wordDatabase');
       
       if (modeValue === 'sentence') {
         const sentences = getSentences(gradeNum);
@@ -51,6 +48,13 @@ export default function DictationPage() {
           text: s.text,
           pinyin: s.pinyin,
           example: s.text,
+        }));
+      } else if (lessonId) {
+        const words = getWordsByLesson(lessonId);
+        data = words.map((w) => ({
+          text: w.text,
+          pinyin: w.pinyin || '',
+          example: w.example || w.text,
         }));
       } else if (modeValue === 'word') {
         const words = getWordsByGrade(gradeNum).filter(w => w.type === 'word');
@@ -73,7 +77,7 @@ export default function DictationPage() {
     };
     
     loadData();
-  }, [grade, mode, repeatCount, setRepeatCount]);
+  }, [grade, mode, lessonId, repeatCount, setRepeatCount]);
 
   const speakCurrentItem = useCallback(() => {
     if (dictationItems.length > 0 && currentIndex < dictationItems.length) {
@@ -158,25 +162,6 @@ export default function DictationPage() {
         <View style={styles.placeholder} />
       </View>
 
-      <View style={styles.inputModeBar}>
-        <TouchableOpacity
-          style={[styles.inputModeBtn, inputMode === 'paper' && styles.inputModeBtnActive]}
-          onPress={() => setInputMode('paper')}
-        >
-          <Text style={[styles.inputModeText, inputMode === 'paper' && styles.inputModeTextActive]}>
-            📝 纸上听写
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.inputModeBtn, inputMode === 'handwriting' && styles.inputModeBtnActive]}
-          onPress={() => setInputMode('handwriting')}
-        >
-          <Text style={[styles.inputModeText, inputMode === 'handwriting' && styles.inputModeTextActive]}>
-            ✍️ 屏幕手写
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       <View style={styles.progressBar}>
         <Text style={styles.progressText}>
           第 {currentIndex + 1} / {dictationItems.length} 题
@@ -188,12 +173,6 @@ export default function DictationPage() {
           <Text style={styles.speakButtonText}>🔊 再听一遍</Text>
         </TouchableOpacity>
       </View>
-
-      {inputMode === 'handwriting' && (
-        <View style={styles.canvasSection}>
-          <DrawingCanvas onTextRecognized={() => {}} />
-        </View>
-      )}
 
       <View style={styles.navButtons}>
         <TouchableOpacity
@@ -259,32 +238,6 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 60,
   },
-  inputModeBar: {
-    flexDirection: 'row',
-    padding: 12,
-    gap: 12,
-    backgroundColor: '#FFF',
-  },
-  inputModeBtn: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#FDF5E6',
-    borderWidth: 2,
-    borderColor: '#8B0000',
-    alignItems: 'center',
-  },
-  inputModeBtnActive: {
-    backgroundColor: '#8B0000',
-  },
-  inputModeText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#8B0000',
-  },
-  inputModeTextActive: {
-    color: '#FFF',
-  },
   progressBar: {
     padding: 12,
     alignItems: 'center',
@@ -310,10 +263,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#8B0000',
-  },
-  canvasSection: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
   },
   navButtons: {
     flexDirection: 'row',

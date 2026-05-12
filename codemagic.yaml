@@ -15,11 +15,11 @@ workflows:
           mkdir -p android/app/src/main/assets
       - name: Bundle JavaScript for production
         script: |
-          npx expo export --platform android --dev false --output-dir dist
-          cp dist/index.android.bundle android/app/src/main/assets/
-          cp dist/assets/* android/app/src/main/assets/ 2>/dev/null || true
+          npx expo export --platform android
+          cp dist/index.android.bundle android/app/src/main/assets/ || true
+          cp -r dist/assets/* android/app/src/main/assets/ 2>/dev/null || true
       - name: Build Release APK
         script: |
-          cd android && ./gradlew assembleRelease
+          cd android && chmod +x gradlew && ./gradlew assembleRelease
     artifacts:
       - android/app/build/outputs/apk/release/app-release.apk

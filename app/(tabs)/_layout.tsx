@@ -7,7 +7,6 @@ function TabBarIcon({ name, color }: { name: string; color: string }) {
   const icons: { [key: string]: string } = {
     '听写': '📝',
     '练习': '📖',
-    '错题本': '❌',
     '我的': '👤',
   };
 
@@ -57,13 +56,6 @@ export default function TabLayout() {
         options={{
           title: '练习',
           tabBarIcon: ({ color }) => <TabBarIcon name="练习" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="wrong"
-        options={{
-          title: '错题本',
-          tabBarIcon: ({ color }) => <TabBarIcon name="错题本" color={color} />,
         }}
       />
       <Tabs.Screen

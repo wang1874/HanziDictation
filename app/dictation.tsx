@@ -6,9 +6,11 @@ import {
   TouchableOpacity,
   Alert,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSpeech } from '../src/hooks/useSpeech';
+import { Word } from '../src/types';
 
 type DictationMode = 'character' | 'word' | 'sentence';
 
@@ -25,11 +27,10 @@ export default function DictationPage() {
   const [showResult, setShowResult] = useState(false);
   const [knownWords, setKnownWords] = useState(0);
   const [repeatCount] = useState(2);
-  const [dictationItems, setDictationItems] = useState<{
-    text: string;
-    pinyin: string;
-    example: string;
-  }[]>([]);
+  const [dictationItems, setDictationItems] = useState<Word[]>([]);
+  const [examples, setExamples] = useState<Map<number, string>>(new Map());
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -38,63 +39,59 @@ export default function DictationPage() {
       setDictationMode(modeValue as DictationMode);
       setRepeatCount(repeatCount);
       
-      let data: { text: string; pinyin: string; example: string }[] = [];
+      let data: Word[] = [];
       
-      const { getWordsByGrade, getWordsByLesson, getSentences } = await import('../src/data/wordDatabase');
+      const { getWordsByGrade, getWordsByLesson } = await import('../src/data/wordDatabase');
       
-      if (modeValue === 'sentence') {
-        const sentences = getSentences(gradeNum);
-        data = sentences.map((s) => ({
-          text: s.text,
-          pinyin: s.pinyin,
-          example: s.text,
-        }));
-      } else if (lessonId) {
-        const words = getWordsByLesson(lessonId);
-        data = words.map((w) => ({
-          text: w.text,
-          pinyin: w.pinyin || '',
-          example: w.example || w.text,
-        }));
+      if (lessonId) {
+        data = getWordsByLesson(lessonId);
       } else if (modeValue === 'word') {
-        const words = getWordsByGrade(gradeNum).filter(w => w.type === 'word');
-        data = words.map((w) => ({
-          text: w.text,
-          pinyin: w.pinyin || '',
-          example: w.example || w.text,
-        }));
+        data = getWordsByGrade(gradeNum).filter(w => w.type === 'word');
+      } else if (modeValue === 'character') {
+        data = getWordsByGrade(gradeNum).filter(w => w.type === 'character');
       } else {
-        const words = getWordsByGrade(gradeNum).filter(w => w.type === 'character');
-        data = words.map((w) => ({
-          text: w.text,
-          pinyin: w.pinyin || '',
-          example: w.example || w.text,
-        }));
+        // 句子模式暂时用词代替
+        data = getWordsByGrade(gradeNum);
       }
       
       const shuffled = [...data].sort(() => Math.random() - 0.5);
       setDictationItems(shuffled);
+      setIsLoading(false);
     };
     
     loadData();
   }, [grade, mode, lessonId, repeatCount, setRepeatCount]);
 
-  const speakCurrentItem = useCallback(() => {
+  const loadExampleForCurrentItem = useCallback(async () => {
     if (dictationItems.length > 0 && currentIndex < dictationItems.length) {
-      const item = dictationItems[currentIndex];
-      const toSpeak = item.example || item.text;
-      speak(toSpeak);
+      if (!examples.has(currentIndex)) {
+        const { generateDictationExample } = await import('../src/services/doubaoService');
+        const word = dictationItems[currentIndex];
+        const example = await generateDictationExample(word.text, word.grade);
+        setExamples(prev => new Map(prev).set(currentIndex, example));
+      }
     }
-  }, [dictationItems, currentIndex, speak]);
+  }, [dictationItems, currentIndex, examples]);
+
+  const speakCurrentItem = useCallback(async () => {
+    if (dictationItems.length > 0 && currentIndex < dictationItems.length) {
+      setIsSpeaking(true);
+      await loadExampleForCurrentItem();
+      const example = examples.get(currentIndex) || dictationItems[currentIndex].text;
+      speak(example);
+      setTimeout(() => setIsSpeaking(false), 1000);
+    }
+  }, [dictationItems, currentIndex, examples, loadExampleForCurrentItem, speak]);
 
   useEffect(() => {
     if (dictationItems.length > 0) {
+      loadExampleForCurrentItem();
       speakCurrentItem();
     }
     return () => {
       stop();
     };
-  }, [currentIndex, dictationItems]);
+  }, [currentIndex, dictationItems, loadExampleForCurrentItem, speakCurrentItem]);
 
   const handlePrev = useCallback(() => {
     if (currentIndex > 0) {
@@ -142,6 +139,17 @@ export default function DictationPage() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#8B0000" />
+          <Text style={styles.loadingText}>正在加载...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (dictationItems.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
@@ -151,6 +159,7 @@ export default function DictationPage() {
   }
 
   const currentItem = dictationItems[currentIndex];
+  const currentExample = examples.get(currentIndex);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -169,9 +178,18 @@ export default function DictationPage() {
       </View>
 
       <View style={styles.speakSection}>
-        <TouchableOpacity style={styles.speakButton} onPress={handleReSpeak}>
-          <Text style={styles.speakButtonText}>🔊 再听一遍</Text>
+        <TouchableOpacity 
+          style={[styles.speakButton, isSpeaking && styles.speakButtonActive]} 
+          onPress={handleReSpeak}
+          disabled={isSpeaking}
+        >
+          <Text style={styles.speakButtonText}>
+            {isSpeaking ? '🔊 正在播放...' : '🔊 再听一遍'}
+          </Text>
         </TouchableOpacity>
+        {currentExample && (
+          <Text style={styles.exampleText}>{currentExample}</Text>
+        )}
       </View>
 
       <View style={styles.navButtons}>
@@ -216,6 +234,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FDF5E6',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#8B0000',
+  },
   header: {
     padding: 16,
     backgroundColor: '#8B0000',
@@ -259,10 +287,21 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#8B0000',
   },
+  speakButtonActive: {
+    backgroundColor: '#FFDAB9',
+    opacity: 0.8,
+  },
   speakButtonText: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#8B0000',
+  },
+  exampleText: {
+    marginTop: 12,
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#666',
+    fontStyle: 'italic',
   },
   navButtons: {
     flexDirection: 'row',

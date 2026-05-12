@@ -6,7 +6,14 @@ export interface Word {
   pinyin?: string;
   type: DictationType;
   grade?: number;
-  example?: string;
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  grade: number;
+  unit: number;
+  words: Word[];
 }
 
 export interface DictationResult {

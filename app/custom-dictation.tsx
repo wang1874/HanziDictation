@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSpeech } from '../src/hooks/useSpeech';
@@ -17,7 +18,6 @@ import { useSpeech } from '../src/hooks/useSpeech';
 interface CustomWord {
   text: string;
   pinyin: string;
-  example: string;
 }
 
 const pinyinMap: Record<string, string> = {
@@ -44,34 +44,6 @@ const pinyinMap: Record<string, string> = {
   '期': 'qī', '气': 'qì', '温': 'wēn', '暖': 'nuǎn', '凉': 'liáng',
 };
 
-const commonWords: Record<string, string> = {
-  '国': '国家', '人': '人们', '学': '学习', '校': '学校', '老': '老师',
-  '生': '学生', '天': '天空', '地': '大地', '中': '中国', '山': '高山',
-  '水': '河水', '火': '火焰', '风': '大风', '雨': '下雨', '花': '花朵',
-  '树': '树木', '草': '草地', '鸟': '小鸟', '虫': '虫子', '鱼': '鱼儿',
-  '马': '大马', '牛': '黄牛', '羊': '山羊', '猪': '小猪', '狗': '小狗',
-  '猫': '小猫', '日': '日月', '月': '月亮', '云': '白云', '雪': '雪花',
-  '春': '春天', '夏': '夏天', '秋': '秋天', '冬': '冬天', '爱': '爱心',
-  '心': '心情', '手': '双手', '口': '人口', '耳': '耳朵', '目': '目光',
-  '上': '上面', '下': '下面', '大': '大人', '小': '小孩', '多': '多少',
-  '少': '少数', '前': '前面', '后': '后面', '左': '左边', '右': '右边',
-  '来': '来到', '去': '回去', '看': '看见', '听': '听见', '说': '说话',
-  '读': '读书', '写': '写字', '想': '想法', '思': '思考', '知': '知识',
-  '道': '道路', '习': '习惯', '作': '作业', '词': '词语', '课': '上课',
-};
-
-const getExample = (text: string): string => {
-  if (text.length === 1) {
-    const commonWord = commonWords[text];
-    if (commonWord) {
-      return `${text}，${commonWord}的${text}`;
-    }
-    return `${text}，${text}${text}的${text}`;
-  } else {
-    return `${text}，${text}`;
-  }
-};
-
 export default function CustomDictationPage() {
   const { speak, stop } = useSpeech();
   const [inputText, setInputText] = useState('');
@@ -80,6 +52,9 @@ export default function CustomDictationPage() {
   const [showResult, setShowResult] = useState(false);
   const [knownCount, setKnownCount] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
+  const [examples, setExamples] = useState<Map<number, string>>(new Map());
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const getPinyin = (text: string): string => {
     let pinyin = '';
@@ -102,7 +77,6 @@ export default function CustomDictationPage() {
       .map((w) => ({
         text: w,
         pinyin: getPinyin(w),
-        example: getExample(w),
       }));
   }, []);
 
@@ -116,19 +90,32 @@ export default function CustomDictationPage() {
       Alert.alert('提示', '请至少输入2个词语');
       return;
     }
-    setWords(parsedWords);
+    const shuffled = [...parsedWords].sort(() => Math.random() - 0.5);
+    setWords(shuffled);
     setIsStarted(true);
     setCurrentIndex(0);
     setKnownCount(0);
+    setExamples(new Map());
   }, [inputText, parseWords]);
 
-  const speakCurrentWord = useCallback(() => {
-    if (words.length > 0 && currentIndex < words.length) {
-      const word = words[currentIndex];
-      const toSpeak = word.example || word.text;
-      speak(toSpeak);
+  const loadExample = useCallback(async (index: number) => {
+    if (!examples.has(index) && words[index]) {
+      const { generateDictationExample } = await import('../src/services/doubaoService');
+      const word = words[index];
+      const example = await generateDictationExample(word.text);
+      setExamples(prev => new Map(prev).set(index, example));
     }
-  }, [words, currentIndex, speak]);
+  }, [examples, words]);
+
+  const speakCurrentWord = useCallback(async () => {
+    if (words.length > 0 && currentIndex < words.length) {
+      setIsSpeaking(true);
+      await loadExample(currentIndex);
+      const example = examples.get(currentIndex) || words[currentIndex].text;
+      speak(example);
+      setTimeout(() => setIsSpeaking(false), 1000);
+    }
+  }, [words, currentIndex, examples, loadExample, speak]);
 
   const handlePrev = useCallback(() => {
     if (currentIndex > 0) {
@@ -168,14 +155,15 @@ export default function CustomDictationPage() {
     router.back();
   }, [stop]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isStarted && words.length > 0) {
+      loadExample(currentIndex);
       speakCurrentWord();
     }
     return () => {
       stop();
     };
-  }, [currentIndex, words, isStarted]);
+  }, [currentIndex, words, isStarted, loadExample, speakCurrentWord]);
 
   if (!isStarted) {
     return (
@@ -226,6 +214,17 @@ export default function CustomDictationPage() {
     );
   }
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#8B0000" />
+          <Text style={styles.loadingText}>正在生成例句...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const currentWord = words[currentIndex];
 
   return (
@@ -239,9 +238,18 @@ export default function CustomDictationPage() {
       </View>
 
       <View style={styles.speakSection}>
-        <TouchableOpacity style={styles.speakButton} onPress={handleReSpeak}>
-          <Text style={styles.speakButtonText}>🔊 再听一遍</Text>
+        <TouchableOpacity 
+          style={[styles.speakButton, isSpeaking && styles.speakButtonActive]} 
+          onPress={handleReSpeak}
+          disabled={isSpeaking}
+        >
+          <Text style={styles.speakButtonText}>
+            {isSpeaking ? '🔊 正在播放...' : '🔊 再听一遍'}
+          </Text>
         </TouchableOpacity>
+        {examples.get(currentIndex) && (
+          <Text style={styles.exampleText}>{examples.get(currentIndex)}</Text>
+        )}
       </View>
 
       <View style={styles.navButtons}>
@@ -285,6 +293,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FDF5E6',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#8B0000',
   },
   header: {
     padding: 16,
@@ -377,10 +395,21 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#8B0000',
   },
+  speakButtonActive: {
+    backgroundColor: '#FFDAB9',
+    opacity: 0.8,
+  },
   speakButtonText: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#8B0000',
+  },
+  exampleText: {
+    marginTop: 12,
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#666',
+    fontStyle: 'italic',
   },
   navButtons: {
     flexDirection: 'row',

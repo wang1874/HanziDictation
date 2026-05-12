@@ -18,11 +18,11 @@ export const useSpeech = () => {
       for (let i = 0; i < count; i++) {
         Speech.speak(text, {
           language: 'zh-CN',
-          pitch: 1.1,
-          rate: 0.75,
+          pitch: 1.0,
+          rate: 0.7,
           volume: 1.0,
         });
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 2500));
       }
     } catch (error) {
       console.error('Speech error:', error);
@@ -38,7 +38,7 @@ export const useSpeech = () => {
       Speech.speak(text, {
         language: 'zh-CN',
         pitch: 1.0,
-        rate: 0.85,
+        rate: 0.75,
       });
     } catch (error) {
       console.error('Speech error:', error);

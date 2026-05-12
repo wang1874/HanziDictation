@@ -1,10 +1,7 @@
-// 豆包API服务 - 智能生成例句
-// 注意：你需要先获取豆包API密钥并配置
+const API_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3';
+const DEFAULT_MODEL = 'ep-20241213164445-pk5jx';
 
-const API_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3'; // 豆包API地址
-const DEFAULT_MODEL = 'ep-20241213164445-pk5jx'; // 使用合适的模型
-
-export interface DoubaoConfig {
+interface DoubaoConfig {
   apiKey?: string;
   model?: string;
 }
@@ -13,117 +10,216 @@ let config: DoubaoConfig = {
   model: DEFAULT_MODEL,
 };
 
-/**
- * 配置豆包API
- */
 export function configureDoubao(newConfig: DoubaoConfig) {
   config = { ...config, ...newConfig };
 }
 
-/**
- * 为汉字/词语生成听写例句
- * @param word 要听写的字/词
- * @param grade 年级（可选）
- * @returns 生成的例句，格式如 "字，词语的字"
- */
+const COMMON_WORDS = [
+  '的', '一', '是', '在', '不', '了', '有', '和', '人', '这',
+  '中', '大', '为', '上', '个', '国', '我', '以', '要', '他',
+  '时', '来', '用', '们', '生', '到', '作', '地', '于', '出',
+  '就', '分', '对', '成', '会', '可', '主', '发', '年', '动',
+  '同', '工', '也', '能', '下', '过', '子', '说', '种', '面',
+  '而', '方', '后', '多', '定', '行', '学', '法', '所', '民',
+  '得', '经', '十', '三', '之', '进', '着', '等', '部', '度',
+  '家', '电', '力', '里', '如', '水', '化', '高', '自', '二',
+  '理', '起', '小', '物', '现', '实', '加', '量', '都', '两',
+  '体', '制', '机', '当', '使', '点', '从', '业', '本', '去'
+];
+
+const SENTENCE_TEMPLATES = [
+  '{word}，今天我们学习{word}',
+  '{word}，{word}是一个生字',
+  '{word}，{word}这个字很重要',
+  '{word}，请写三遍{word}',
+  '{word}，{word}字的拼音是',
+  '{word}，{word}的意思是',
+  '{word}，请读一下{word}',
+  '{word}，{word}可以组词为',
+  '{word}，{word}在课文中出现',
+  '{word}，记住{word}的写法'
+];
+
+const WORD_SENTENCE_TEMPLATES = [
+  '{word}，{word}是一个词语',
+  '{word}，我们要掌握{word}',
+  '{word}，{word}在文中的意思',
+  '{word}，{word}的用法很特别',
+  '{word}，{word}这个词很常用',
+  '{word}，请用{word}造句',
+  '{word}，{word}的近义词是',
+  '{word}，{word}是本课生词',
+  '{word}，{word}要认真记住',
+  '{word}，{word}可以这样用'
+];
+
+const INTELLIGENT_SENTENCES: Record<string, string> = {
+  '天': '天，今天的天气真好',
+  '地': '地，地上有一只小蚂蚁',
+  '人': '人，我们都是中国人',
+  '你': '你，你好吗？',
+  '我': '我，我是小学生',
+  '他': '他，他是我的好朋友',
+  '一': '一，一、二、三',
+  '二': '二，二月二龙抬头',
+  '三': '三，三是一个数字',
+  '四': '四，四面都有山',
+  '五': '五，五星红旗',
+  '六': '六，六六大顺',
+  '七': '七，一个星期有七天',
+  '八': '八，八仙过海',
+  '九': '九，九月九日重阳节',
+  '十': '十，十全十美',
+  '爸': '爸，爸爸爱我',
+  '妈': '妈，妈妈很辛苦',
+  '爷': '爷，爷爷在看报',
+  '奶': '奶，奶奶在做饭',
+  '哥': '哥，哥哥在上大学',
+  '姐': '姐，姐姐很漂亮',
+  '弟': '弟，弟弟在玩耍',
+  '妹': '妹，妹妹在唱歌',
+  '国': '国，我爱我的祖国',
+  '家': '家，我们都有一个家',
+  '学': '学，好好学习天天向上',
+  '校': '校，我们的学校很美丽',
+  '生': '生，生活很美好',
+  '日': '日，日出东方红彤彤',
+  '月': '月，月亮挂在天上',
+  '水': '水，水是生命之源',
+  '火': '火，我们要注意防火',
+  '山': '山，大山很巍峨',
+  '石': '石，石头很硬',
+  '田': '田，田野很美丽',
+  '禾': '禾，禾苗在成长',
+  '花': '花，花园里有很多花',
+  '草': '草，小草在生长',
+  '树': '树，树很高大',
+  '林': '林，树林很茂盛',
+  '森': '森，森林里有很多动物',
+  '春': '春，春天来了',
+  '夏': '夏，夏天很热',
+  '秋': '秋，秋天是丰收的季节',
+  '冬': '冬，冬天会下雪',
+  '鸟': '鸟，小鸟在树上唱歌',
+  '虫': '虫，虫儿在地上爬',
+  '鱼': '鱼，鱼在水里游',
+  '马': '马，马儿在奔跑',
+  '牛': '牛，牛在吃草',
+  '羊': '羊，羊儿在山坡上',
+  '狗': '狗，狗是人类的朋友',
+  '猫': '猫，小猫在睡觉',
+  '兔': '兔，兔子很可爱',
+  '爱': '爱，我爱爸爸妈',
+  '心': '心，我们要用心学习',
+  '思': '思，我在思考问题',
+  '想': '想，我想念奶奶',
+  '知': '知，知识就是力量',
+  '道': '道，道理要明白',
+  '习': '习，练习很重要',
+  '写': '写，写字要认真',
+  '词': '词，词语要积累',
+  '饺': '饺，我爱吃饺子',
+  '燃': '燃，火焰在燃烧',
+  '和蔼可亲': '和蔼可亲，张老师和蔼可亲',
+  '例如': '例如，例如这个例子',
+  '灿烂': '灿烂，阳光很灿烂',
+  '美丽': '美丽，花园真美丽',
+  '快乐': '快乐，我们很快乐',
+  '高兴': '高兴，今天真高兴',
+  '温暖': '温暖，春天很温暖',
+  '希望': '希望，我们充满希望',
+  '梦想': '梦想，我的梦想是',
+  '努力': '努力，我们要努力学习',
+  '认真': '认真，做作业要认真',
+  '仔细': '仔细，观察要仔细',
+  '坚持': '坚持，坚持就是胜利'
+};
+
 export async function generateDictationExample(
   word: string,
   grade?: number
 ): Promise<string> {
   try {
-    // 如果没有配置API密钥，使用本地生成的简单例句作为备用
-    if (!config.apiKey) {
-      return generateLocalExample(word);
+    if (INTELLIGENT_SENTENCES[word]) {
+      return INTELLIGENT_SENTENCES[word];
     }
 
-    const prompt = buildPrompt(word, grade);
-    const response = await fetch(`${API_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [
-          {
-            role: 'system',
-            content: '你是一个小学语文老师，专门帮助学生进行汉字听写。请为给定的字或词生成适合听写的例句。',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 100,
-      }),
-    });
+    if (config.apiKey) {
+      const prompt = buildPrompt(word, grade);
+      const response = await fetch(`${API_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [
+            {
+              role: 'system',
+              content: '你是一个专业的小学语文老师。请为学生生成适合听写的例句。格式要求：字/词，例句。例子：国，我们的国家很美丽。'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 50,
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`API请求失败: ${response.status}`);
+      if (response.ok) {
+        const data = await response.json();
+        const aiExample = data.choices?.[0]?.message?.content?.trim();
+        if (aiExample) {
+          return formatExample(aiExample, word);
+        }
+      }
     }
-
-    const data = await response.json();
-    const example = data.choices?.[0]?.message?.content?.trim();
-
-    // 确保返回的格式符合要求
-    return formatExample(example, word);
   } catch (error) {
-    console.error('调用豆包API失败:', error);
-    // API失败时使用本地备用方案
-    return generateLocalExample(word);
+    console.error('豆包API调用失败:', error);
   }
+
+  return generateSmartExample(word);
 }
 
-/**
- * 构建提示词
- */
 function buildPrompt(word: string, grade?: number): string {
-  const gradeInfo = grade ? `适合${grade}年级学生` : '';
-  
+  const gradeText = grade ? `适合${grade}年级学生` : '';
   if (word.length === 1) {
-    return `请为汉字"${word}"${gradeInfo}生成一个听写例句，格式严格为："${word}，词语的${word}"。例如："国，国家的国"。只返回例句本身，不要有其他内容。`;
+    return `请为汉字"${word}"${gradeText}生成一个简单的听写例句。格式：${word}，简单句。例如：国，我们的祖国很伟大。`;
   } else {
-    return `请为词语"${word}"${gradeInfo}生成一个听写例句，格式严格为："${word}，包含这个词的短句"。例如："国家，我们的国家很美丽"。只返回例句本身，不要有其他内容。`;
+    return `请为词语"${word}"${gradeText}生成一个简单的听写例句。格式：${word}，简单句。例如：学校，我们的学校很美丽。`;
   }
 }
 
-/**
- * 格式化例句，确保符合要求的格式
- */
 function formatExample(example: string, word: string): string {
-  // 清理多余的引号和空格
-  let cleaned = example.replace(/[""]/g, '').trim();
+  let cleaned = example.replace(/["""']/g, '').trim();
   
-  // 如果已经包含逗号，则直接返回
-  if (cleaned.includes('，') || cleaned.includes(',')) {
-    return cleaned.replace(/,/g, '，');
+  if (cleaned.includes('，')) {
+    const parts = cleaned.split('，');
+    if (parts.length >= 2) {
+      return `${word}，${parts[1]}`;
+    }
   }
   
-  // 否则添加逗号和简单的说明
-  if (word.length === 1) {
-    return `${word}，${word}字的${word}`;
-  } else {
-    return `${word}，我们学习${word}`;
+  if (cleaned.includes(',')) {
+    const parts = cleaned.split(',');
+    if (parts.length >= 2) {
+      return `${word}，${parts[1]}`;
+    }
   }
+  
+  return generateSmartExample(word);
 }
 
-/**
- * 本地备用方案：简单生成例句
- */
-function generateLocalExample(word: string): string {
+function generateSmartExample(word: string): string {
   if (word.length === 1) {
-    // 单字
-    const commonWords = [
-      '的', '一', '是', '在', '不', '了', '有', '和', '人', '这',
-      '中', '大', '为', '上', '个', '国', '我', '以', '要', '他',
-    ];
-    const randomWord = commonWords[Math.floor(Math.random() * commonWords.length)];
-    return `${word}，${word}${randomWord}的${word}`;
+    const template = SENTENCE_TEMPLATES[Math.floor(Math.random() * SENTENCE_TEMPLATES.length)];
+    return template.replace(/{word}/g, word);
   } else {
-    // 词语
-    return `${word}，我们喜欢${word}`;
+    const template = WORD_SENTENCE_TEMPLATES[Math.floor(Math.random() * WORD_SENTENCE_TEMPLATES.length)];
+    return template.replace(/{word}/g, word);
   }
 }
 

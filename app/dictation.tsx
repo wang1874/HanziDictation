@@ -181,14 +181,14 @@ export default function DictationPage() {
           disabled={currentIndex === 0}
         >
           <Text style={[styles.navButtonText, currentIndex === 0 && styles.navButtonTextDisabled]}>
-            ← 上一个
+            ◀
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.showResultBtn} onPress={handleShowResult}>
           <Text style={styles.showResultBtnText}>显示答案</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navButton} onPress={handleNext}>
-          <Text style={styles.navButtonText}>下一个 →</Text>
+          <Text style={styles.navButtonText}>▶</Text>
         </TouchableOpacity>
       </View>
 

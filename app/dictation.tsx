@@ -144,8 +144,18 @@ export default function DictationPage() {
   };
 
   const getVoiceLabel = () => {
-    if (currentSource === 'doubao') return '🔊 豆包TTS';
-    return '🔊 系统语音';
+    if (currentSource === 'doubao') {
+      return (
+        <View style={styles.voiceTagContainer}>
+          <Text style={styles.doubaoVoiceTag}>🎙️ 豆包语音</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.voiceTagContainer}>
+        <Text style={styles.systemVoiceTag}>📢 系统语音</Text>
+      </View>
+    );
   };
 
   if (isLoading) {
@@ -184,7 +194,7 @@ export default function DictationPage() {
         <Text style={styles.progressText}>
           第 {currentIndex + 1} / {dictationItems.length} 题
         </Text>
-        <Text style={styles.voiceLabel}>{getVoiceLabel()}</Text>
+        {getVoiceLabel()}
       </View>
 
       <View style={styles.speakSection}>
@@ -286,10 +296,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#8B0000',
   },
-  voiceLabel: {
-    fontSize: 12,
+  voiceTagContainer: {
     marginTop: 4,
+  },
+  doubaoVoiceTag: {
+    fontSize: 12,
+    color: '#FF4500',
+    fontWeight: 'bold',
+    backgroundColor: '#FFF0F0',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  systemVoiceTag: {
+    fontSize: 12,
     color: '#666',
+    fontWeight: 'bold',
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   speakSection: {
     padding: 16,

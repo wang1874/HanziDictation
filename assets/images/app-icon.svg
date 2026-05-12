@@ -1,0 +1,40 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B0000"/>
+      <stop offset="100%" style="stop-color:#5C0000"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700"/>
+      <stop offset="100%" style="stop-color:#FFA500"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景圆形 -->
+  <circle cx="512" cy="512" r="480" fill="url(#bgGrad)"/>
+  
+  <!-- 外圈装饰 -->
+  <circle cx="512" cy="512" r="450" fill="none" stroke="#FFD700" stroke-width="8"/>
+  <circle cx="512" cy="512" r="420" fill="none" stroke="#FFD700" stroke-width="2" stroke-dasharray="20,10"/>
+  
+  <!-- 田字格背景 -->
+  <rect x="256" y="256" width="512" height="512" fill="#FFF8E7" rx="20"/>
+  
+  <!-- 田字格线条 -->
+  <line x1="512" y1="256" x2="512" y2="768" stroke="#8B4513" stroke-width="3"/>
+  <line x1="256" y1="512" x2="768" y2="512" stroke="#8B4513" stroke-width="3"/>
+  
+  <!-- 外边框 -->
+  <rect x="256" y="256" width="512" height="512" fill="none" stroke="#8B4513" stroke-width="4" rx="20"/>
+  
+  <!-- 听字 -->
+  <text x="390" y="480" font-family="SimHei, Heiti SC, sans-serif" font-size="200" font-weight="bold" fill="url(#textGrad)" text-anchor="middle">听</text>
+  
+  <!-- 写字 -->
+  <text x="634" y="700" font-family="SimHei, Heiti SC, sans-serif" font-size="200" font-weight="bold" fill="url(#textGrad)" text-anchor="middle">写</text>
+  
+  <!-- 顶部装饰 -->
+  <circle cx="512" cy="120" r="15" fill="#FFD700"/>
+  <circle cx="412" cy="140" r="8" fill="#FFD700"/>
+  <circle cx="612" cy="140" r="8" fill="#FFD700"/>
+</svg>

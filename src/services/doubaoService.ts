@@ -1,8 +1,9 @@
 const CHAT_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
-const TTS_API_URL = 'https://openspeech.bytedance.com/api/v1/tts';
-const DEFAULT_MODEL = 'doubao-seed-2-0-code';
+const TTS_API_URL = 'https://openspeech.bytedance.com/api/text2speech';
+const DEFAULT_MODEL = 'ep-20241213164445-pk5jx';
 const TTS_APP_ID = '3740050812';
 const TTS_ACCESS_TOKEN = 'zPkdziOzNxMFoslkYxMa28wDZE6v';
+const TTS_CLUSTER_ID = 'volcano_tts';
 
 interface DoubaoConfig {
   apiKey?: string;
@@ -145,13 +146,15 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
     console.log('[豆包TTS] API地址:', TTS_API_URL);
     console.log('[豆包TTS] APP ID:', TTS_APP_ID);
     console.log('[豆包TTS] Access Token前10位:', TTS_ACCESS_TOKEN.substring(0, 10) + '...');
+    console.log('[豆包TTS] Cluster ID:', TTS_CLUSTER_ID);
     
     const response = await fetch(TTS_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer;${TTS_ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${TTS_ACCESS_TOKEN}`,
         'X-Tts-Appid': TTS_APP_ID,
+        'X-Tts-Cluster': TTS_CLUSTER_ID,
       },
       body: JSON.stringify({
         text: text,
@@ -159,6 +162,7 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
         codec: 'mp3',
         rate: 0.8,
         reqid: `req-${Date.now()}`,
+        cluster: TTS_CLUSTER_ID,
       }),
     });
 
@@ -171,22 +175,31 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
       return null;
     }
 
-    const data = await response.json();
-    console.log('[豆包TTS] 响应数据:', JSON.stringify(data));
+    const contentType = response.headers.get('content-type');
+    console.log('[豆包TTS] 响应类型:', contentType);
     
-    if (data.audio && typeof data.audio === 'string') {
-      const base64Data = data.audio;
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    if (contentType?.includes('application/json')) {
+      const data = await response.json();
+      console.log('[豆包TTS] 响应数据:', JSON.stringify(data));
+      
+      if (data.audio && typeof data.audio === 'string') {
+        const base64Data = data.audio;
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        console.log('[豆包TTS] 合成成功，音频大小:', byteArray.length, 'bytes');
+        return byteArray.buffer;
+      } else {
+        console.error('[豆包TTS] 响应中没有音频数据:', data);
+        return null;
       }
-      const byteArray = new Uint8Array(byteNumbers);
-      console.log('[豆包TTS] 合成成功，音频大小:', byteArray.length, 'bytes');
-      return byteArray.buffer;
     } else {
-      console.error('[豆包TTS] 响应中没有音频数据:', data);
-      return null;
+      const blob = await response.blob();
+      console.log('[豆包TTS] 合成成功，音频大小:', blob.size, 'bytes');
+      return blob.arrayBuffer();
     }
   } catch (error: any) {
     console.error('[豆包TTS] TTS失败:', error.message || error);
@@ -204,6 +217,7 @@ export function getCurrentConfig() {
     model: config.model,
     ttsAppId: TTS_APP_ID,
     ttsAccessToken: TTS_ACCESS_TOKEN,
+    ttsClusterId: TTS_CLUSTER_ID,
     chatUrl: CHAT_API_URL,
     ttsUrl: TTS_API_URL,
   };

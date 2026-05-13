@@ -282,7 +282,14 @@ export default function DebugPage() {
 
       <View style={styles.logSection}>
         <Text style={styles.label}>调试日志:</Text>
-        <ScrollView style={styles.log}>
+        <ScrollView 
+          style={styles.log}
+          ref={(ref: any) => {
+            if (ref) {
+              setTimeout(() => ref.scrollToEnd({ animated: false }), 100);
+            }
+          }}
+        >
           {log.map((item, index) => (
             <Text key={index} style={[
               styles.logItem,
@@ -296,6 +303,7 @@ export default function DebugPage() {
           {log.length === 0 && (
             <Text style={styles.logEmpty}>点击上方按钮开始测试...</Text>
           )}
+          <View style={styles.bottomPadding} />
         </ScrollView>
       </View>
     </ScrollView>
@@ -413,5 +421,8 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     paddingVertical: 20,
+  },
+  bottomPadding: {
+    height: 100,
   },
 });

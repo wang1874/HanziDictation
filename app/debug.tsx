@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { generateDictationExample, synthesizeSpeech } from '../src/services/doubaoService';
 import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
 
 export default function DebugPage() {
   const [inputText, setInputText] = useState('');
@@ -76,10 +77,19 @@ export default function DebugPage() {
           });
         });
         
-        Alert.alert('成功', 'TTS测试成功，音频已播放');
+        Alert.alert('成功', 'TTS测试成功，音频已播放（豆包语音）');
       } else {
-        addLog('失败! 返回null');
-        Alert.alert('失败', 'TTS返回null，可能API密钥无效或网络问题');
+        addLog('豆包TTS失败，尝试系统语音...');
+        Alert.alert('豆包TTS失败', '尝试使用系统语音播放...');
+        
+        addLog('使用系统语音播放...');
+        Speech.speak(inputText, {
+          language: 'zh-CN',
+          rate: 0.7,
+        });
+        
+        addLog('系统语音播放完成');
+        Alert.alert('成功', '系统语音播放成功');
       }
     } catch (error) {
       addLog(`失败! 错误: ${error}`);
@@ -130,11 +140,45 @@ export default function DebugPage() {
           });
         });
         
-        Alert.alert('成功', `完整流程测试成功!\n例句: ${example}`);
+        Alert.alert('成功', `完整流程测试成功!\n例句: ${example}\n使用豆包语音`);
       } else {
-        addLog('TTS失败，使用系统语音');
-        Alert.alert('部分成功', `例句生成成功: ${example}\n但TTS失败，使用系统语音`);
+        addLog('豆包TTS失败，使用系统语音');
+        
+        addLog('步骤3: 使用系统语音播放...');
+        Speech.speak(example, {
+          language: 'zh-CN',
+          rate: 0.7,
+        });
+        
+        Alert.alert('部分成功', `例句生成成功: ${example}\n使用系统语音播放`);
       }
+    } catch (error) {
+      addLog(`失败! 错误: ${error}`);
+      Alert.alert('失败', `错误: ${error}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const testSystemSpeech = async () => {
+    if (!inputText.trim()) {
+      Alert.alert('请输入要测试的文字');
+      return;
+    }
+
+    setIsTesting(true);
+    addLog(`=== 开始测试系统语音 ===`);
+    addLog(`输入: ${inputText}`);
+
+    try {
+      addLog('正在使用系统语音播放...');
+      Speech.speak(inputText, {
+        language: 'zh-CN',
+        rate: 0.7,
+      });
+      
+      addLog('系统语音播放完成');
+      Alert.alert('成功', '系统语音测试成功');
     } catch (error) {
       addLog(`失败! 错误: ${error}`);
       Alert.alert('失败', `错误: ${error}`);
@@ -153,36 +197,59 @@ export default function DebugPage() {
           style={styles.input}
           value={inputText}
           onChangeText={setInputText}
-          placeholder="请输入汉字或词语，如：国"
+          placeholder="请输入汉字或词语，如：美丽"
           disabled={isTesting}
         />
       </View>
 
       <View style={styles.buttons}>
-        <Button
-          title="测试Chat API"
+        <TouchableOpacity
+          style={[styles.button, styles.buttonChat]}
           onPress={testChatAPI}
           disabled={isTesting}
-          color="#8B0000"
-        />
-        <Button
-          title="测试TTS API"
+        >
+          <Text style={styles.buttonText}>测试Chat API</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.button, styles.buttonTTS]}
           onPress={testTTSAPI}
           disabled={isTesting}
-          color="#8B0000"
-        />
-        <Button
-          title="测试完整流程"
+        >
+          <Text style={styles.buttonText}>测试TTS API</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.button, styles.buttonFull]}
           onPress={testFullDictation}
           disabled={isTesting}
-          color="#008B00"
-        />
-        <Button
-          title="清空日志"
+        >
+          <Text style={styles.buttonText}>测试完整流程</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.button, styles.buttonSystem]}
+          onPress={testSystemSpeech}
+          disabled={isTesting}
+        >
+          <Text style={styles.buttonText}>测试系统语音</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.button, styles.buttonClear]}
           onPress={clearLog}
           disabled={isTesting}
-          color="#666"
-        />
+        >
+          <Text style={styles.buttonText}>清空日志</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.infoBox}>
+        <Text style={styles.infoTitle}>ℹ️ 说明</Text>
+        <Text style={styles.infoText}>• Chat API: 用于生成听写例句，测试结果显示正常</Text>
+        <Text style={styles.infoText}>• TTS API: 用于语音合成，若失败会自动使用系统语音</Text>
+        <Text style={styles.infoText}>• 系统语音: 使用设备自带的语音合成功能</Text>
+        <Text style={styles.infoText}>• 如果TTS失败，可能是API密钥没有开通TTS权限</Text>
       </View>
 
       <View style={styles.logSection}>
@@ -222,24 +289,69 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   input: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#8B0000',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 15,
     fontSize: 18,
     backgroundColor: '#fff',
   },
   buttons: {
-    gap: 10,
+    gap: 12,
     marginBottom: 20,
+  },
+  button: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: '#8B0000',
+  },
+  buttonChat: {
+    backgroundColor: '#8B0000',
+  },
+  buttonTTS: {
+    backgroundColor: '#8B4513',
+  },
+  buttonFull: {
+    backgroundColor: '#2E8B57',
+  },
+  buttonSystem: {
+    backgroundColor: '#4169E1',
+  },
+  buttonClear: {
+    backgroundColor: '#666',
+  },
+  buttonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  infoBox: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#FFD700',
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#8B0000',
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
   },
   logSection: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 15,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 2,
+    borderColor: '#8B0000',
   },
   log: {
     maxHeight: 400,

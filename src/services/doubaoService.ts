@@ -1,6 +1,6 @@
 const CHAT_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 const TTS_API_URL = 'https://ark.cn-beijing.volces.com/api/text2speech/v1';
-const DEFAULT_MODEL = 'ep-20241213164445-pk5jx';
+const DEFAULT_MODEL = 'Doubao-Seed-2.0-Code';
 
 interface DoubaoConfig {
   apiKey?: string;
@@ -8,7 +8,7 @@ interface DoubaoConfig {
 }
 
 let config: DoubaoConfig = {
-  apiKey: 'caedce2b76f5-4b8d-9544-5b4271c4e5a8',
+  apiKey: 'ark-abd3279c-50fd-42df-a8c7-d4967781b463-f3a3a',
   model: DEFAULT_MODEL,
 };
 

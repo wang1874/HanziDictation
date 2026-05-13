@@ -51,6 +51,22 @@ export default function HomePage() {
           </View>
           <Text style={styles.mainArrow}>→</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.mainCard, { backgroundColor: '#FFF8E7', borderColor: theme.primary, opacity: 0.7 }]}
+          onPress={() => router.push('/debug')}
+        >
+          <View style={styles.mainIcon}>
+            <Text style={styles.mainEmoji}>🔧</Text>
+          </View>
+          <View style={styles.mainContent}>
+            <Text style={[styles.mainTitle, { color: theme.primary }]}>API调试</Text>
+            <Text style={[styles.mainDesc, { color: theme.textSecondary }]}>
+              测试豆包API是否正常工作
+            </Text>
+          </View>
+          <Text style={styles.mainArrow}>→</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

@@ -9,32 +9,36 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import GradeSelector from '../src/components/GradeSelector';
 import { getLessonsByGrade } from '../src/data/wordDatabase';
 import type { Lesson } from '../src/types';
 
 export default function LessonSelectPage() {
   const router = useRouter();
   const [selectedGrade, setSelectedGrade] = useState<number>(1);
+  const [selectedSemester, setSelectedSemester] = useState<'上' | '下'>('上');
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const loadLessons = useCallback(async (grade: number) => {
     setIsLoading(true);
     const gradeLessons = getLessonsByGrade(grade);
-    setLessons(gradeLessons);
+    // 根据学期筛选课程
+    const filteredLessons = gradeLessons.filter(lesson => {
+      if (selectedSemester === '上') {
+        return !lesson.id.includes('b');
+      } else {
+        return lesson.id.includes('b');
+      }
+    });
+    setLessons(filteredLessons);
     setIsLoading(false);
-  }, []);
+  }, [selectedSemester]);
 
   React.useEffect(() => {
     loadLessons(selectedGrade);
   }, [selectedGrade, loadLessons]);
 
-  const handleGradeSelect = useCallback((grade: number | null) => {
-    if (grade !== null) {
-      setSelectedGrade(grade);
-    }
-  }, []);
+  const grades = [1, 2, 3, 4, 5, 6];
 
   const handleLessonSelect = useCallback((lesson: Lesson) => {
     router.push({
@@ -77,15 +81,72 @@ export default function LessonSelectPage() {
       </View>
 
       <View style={styles.content}>
-        <GradeSelector
-          selectedGrade={selectedGrade}
-          onSelectGrade={handleGradeSelect}
-        />
-        
+        {/* 年级选择 */}
+        <View style={styles.gradeSection}>
+          <Text style={styles.sectionLabel}>选择年级</Text>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.gradeScroll}
+          >
+            <View style={styles.gradeButtons}>
+              {grades.map(grade => (
+                <TouchableOpacity
+                  key={grade}
+                  onPress={() => setSelectedGrade(grade)}
+                  style={[
+                    styles.gradeButton,
+                    selectedGrade === grade && styles.gradeButtonSelected,
+                  ]}
+                >
+                  <Text style={[
+                    styles.gradeButtonText,
+                    selectedGrade === grade && styles.gradeButtonTextSelected,
+                  ]}>
+                    {grade}年级
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* 学期选择 */}
+        <View style={styles.semesterSection}>
+          <TouchableOpacity
+            onPress={() => setSelectedSemester('上')}
+            style={[
+              styles.semesterButton,
+              selectedSemester === '上' && styles.semesterButtonSelected,
+            ]}
+          >
+            <Text style={[
+              styles.semesterButtonText,
+              selectedSemester === '上' && styles.semesterButtonTextSelected,
+            ]}>
+              上册
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setSelectedSemester('下')}
+            style={[
+              styles.semesterButton,
+              selectedSemester === '下' && styles.semesterButtonSelected,
+            ]}
+          >
+            <Text style={[
+              styles.semesterButtonText,
+              selectedSemester === '下' && styles.semesterButtonTextSelected,
+            ]}>
+              下册
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.sectionTitle}>
-          {selectedGrade}年级 - 课文列表
+          {selectedGrade}年级{selectedSemester}册 - 课文列表
         </Text>
-        
+
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#8B0000" />
@@ -93,6 +154,11 @@ export default function LessonSelectPage() {
         ) : (
           <ScrollView style={styles.lessonList}>
             {lessons.map((lesson, index) => renderLessonItem(lesson, index))}
+            {lessons.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>该年级暂无课程</Text>
+              </View>
+            )}
           </ScrollView>
         )}
       </View>
@@ -131,11 +197,72 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
+  gradeSection: {
+    marginBottom: 12,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  gradeScroll: {
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+  },
+  gradeButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  gradeButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    backgroundColor: '#FFF',
+    borderWidth: 2,
+    borderColor: '#8B0000',
+  },
+  gradeButtonSelected: {
+    backgroundColor: '#8B0000',
+    borderColor: '#8B0000',
+  },
+  gradeButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#8B0000',
+  },
+  gradeButtonTextSelected: {
+    color: '#FFF',
+  },
+  semesterSection: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  semesterButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#FFF',
+    borderWidth: 2,
+    borderColor: '#8B0000',
+    alignItems: 'center',
+  },
+  semesterButtonSelected: {
+    backgroundColor: '#8B0000',
+    borderColor: '#8B0000',
+  },
+  semesterButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#8B0000',
+  },
+  semesterButtonTextSelected: {
+    color: '#FFF',
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#8B0000',
-    marginTop: 16,
     marginBottom: 12,
   },
   loadingContainer: {
@@ -186,5 +313,15 @@ const styles = StyleSheet.create({
   arrow: {
     fontSize: 24,
     color: '#8B0000',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999',
   },
 });

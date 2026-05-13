@@ -49,9 +49,8 @@ const pinyinMap: Record<string, string> = {
   '莲': 'lián', '蓬': 'péng', '酱': 'jiàng', '油': 'yóu', '领': 'lǐng',
   '袖': 'xiù', '节': 'jié', '制': 'zhì', '谚': 'yàn', '语': 'yǔ',
   '巢': 'cháo', '苇': 'wěi', '罗': 'luó', '眠': 'mián', '霸': 'bà',
-  '占': 'zhàn', '美': 'měi', '丽': 'lì', '快': 'kuài', '乐': 'lè',
-  '明': 'míng', '天': 'tiān', '学': 'xué', '生': 'shēng', '老': 'lǎo',
-  '师': 'shī', '朋': 'péng', '友': 'yǒu', '同': 'tóng', '学': 'xué',
+  '占': 'zhàn', '丽': 'lì', '快': 'kuài', '明': 'míng', '老': 'lǎo',
+  '朋': 'péng', '友': 'yǒu', '同': 'tóng',
 };
 
 export default function CustomDictationPage() {
@@ -212,27 +211,11 @@ export default function CustomDictationPage() {
               numberOfLines={4}
               textAlignVertical="top"
             />
-            
-            <View style={styles.previewSection}>
-              <Text style={styles.previewLabel}>预览：</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.previewWords}>
-                  {parsedWords.map((word, index) => (
-                    <View key={index} style={styles.previewWord}>
-                      <Text style={styles.previewWordText}>{word.text}</Text>
-                    </View>
-                  ))}
-                  {parsedWords.length === 0 && (
-                    <Text style={styles.emptyPreview}>暂无内容</Text>
-                  )}
-                </View>
-              </ScrollView>
-            </View>
 
             {parsedWords.length > 0 && (
               <View style={styles.cardsSection}>
                 <Text style={styles.cardsLabel}>拼音卡片：</Text>
-                <ScrollView>
+                <ScrollView style={styles.cardsScroll} showsVerticalScrollIndicator={true}>
                   <View style={styles.cardsGrid}>
                     {parsedWords.map((word, index) => (
                       <TouchableOpacity
@@ -243,8 +226,8 @@ export default function CustomDictationPage() {
                         ]}
                         onPress={() => handlePreviewWord(word.text, index)}
                       >
-                        <Text style={styles.wordCardText}>{word.text}</Text>
                         <Text style={styles.wordCardPinyin}>{word.pinyin}</Text>
+                        <Text style={styles.wordCardText}>{word.text}</Text>
                         <Text style={styles.speakerIcon}>
                           {speakingIndex === index ? '🔊' : '🔈'}
                         </Text>
@@ -326,8 +309,8 @@ export default function CustomDictationPage() {
       {showResult && (
         <View style={styles.resultSection}>
           <Text style={styles.resultLabel}>正确答案</Text>
-          <Text style={styles.resultCharacter}>{currentWord.text}</Text>
           <Text style={styles.resultPinyin}>{currentWord.pinyin}</Text>
+          <Text style={styles.resultCharacter}>{currentWord.text}</Text>
           <View style={styles.resultActions}>
             <TouchableOpacity style={styles.correctButton} onPress={handleCorrect}>
               <Text style={styles.correctText}>✓ 认识了</Text>
@@ -409,52 +392,24 @@ const styles = StyleSheet.create({
     minHeight: 120,
     color: '#333',
   },
-  previewSection: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E0D5C7',
-  },
-  previewLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  previewWords: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  previewWord: {
-    backgroundColor: '#FFE4C4',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#8B0000',
-  },
-  previewWordText: {
-    fontSize: 14,
-    color: '#8B0000',
-    fontWeight: 'bold',
-  },
-  emptyPreview: {
-    fontSize: 14,
-    color: '#999',
-  },
   cardsSection: {
     marginTop: 16,
+    flex: 1,
   },
   cardsLabel: {
     fontSize: 14,
     color: '#666',
     marginBottom: 12,
   },
+  cardsScroll: {
+    flex: 1,
+    maxHeight: 300,
+  },
   cardsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    paddingBottom: 12,
   },
   wordCard: {
     width: '30%',
@@ -471,16 +426,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE4C4',
     borderColor: '#FF4500',
   },
+  wordCardPinyin: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
   wordCardText: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#8B0000',
-    textAlign: 'center',
-  },
-  wordCardPinyin: {
-    fontSize: 10,
-    color: '#666',
-    marginTop: 4,
     textAlign: 'center',
   },
   speakerIcon: {
@@ -576,21 +531,22 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 8,
   },
+  resultPinyin: {
+    fontSize: 18,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
   resultCharacter: {
     fontSize: 48,
     fontWeight: 'bold',
     color: '#8B0000',
   },
-  resultPinyin: {
-    fontSize: 18,
-    color: '#666',
-    marginTop: 8,
-    marginBottom: 16,
-  },
   resultActions: {
     flexDirection: 'row',
     gap: 12,
     width: '100%',
+    marginTop: 16,
   },
   correctButton: {
     flex: 1,

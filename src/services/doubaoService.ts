@@ -152,7 +152,7 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer;${TTS_ACCESS_TOKEN}`,
+        'Authorization': `Bearer; ${TTS_ACCESS_TOKEN}`,
       },
       body: JSON.stringify({
         app: {

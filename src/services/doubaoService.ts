@@ -26,6 +26,8 @@ export async function generateDictationExample(word: string, grade?: number): Pr
   try {
     const prompt = buildPrompt(word, grade);
     console.log('[豆包API] 开始调用Chat API，输入:', word);
+    console.log('[豆包API] 模型:', config.model);
+    console.log('[豆包API] API Key前10位:', config.apiKey?.substring(0, 10) + '...');
     
     const response = await fetch(`${CHAT_API_URL}/chat/completions`, {
       method: 'POST',
@@ -50,6 +52,8 @@ export async function generateDictationExample(word: string, grade?: number): Pr
       }),
     });
 
+    console.log('[豆包API] HTTP状态码:', response.status);
+    
     if (response.ok) {
       const data = await response.json();
       console.log('[豆包API] Chat API响应:', JSON.stringify(data));
@@ -66,10 +70,14 @@ export async function generateDictationExample(word: string, grade?: number): Pr
       }
     } else {
       const errorText = await response.text();
-      console.error('[豆包API] Chat API响应失败:', response.status, '-', errorText);
+      console.error('[豆包API] Chat API响应失败:', response.status);
+      console.error('[豆包API] 错误详情:', errorText);
     }
   } catch (error: any) {
     console.error('[豆包API] Chat API调用失败:', error.message || error);
+    if (error.stack) {
+      console.error('[豆包API] 错误堆栈:', error.stack);
+    }
   }
 
   console.log('[豆包API] 豆包不可用，使用本地例句:', word);
@@ -133,6 +141,10 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
 
   try {
     console.log('[豆包TTS] 开始调用TTS API，输入:', text);
+    console.log('[豆包TTS] API地址:', TTS_API_URL);
+    console.log('[豆包TTS] APP ID:', TTS_APP_ID);
+    console.log('[豆包TTS] API Key前10位:', config.apiKey?.substring(0, 10) + '...');
+    
     const response = await fetch(TTS_API_URL, {
       method: 'POST',
       headers: {
@@ -148,9 +160,12 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
       }),
     });
 
+    console.log('[豆包TTS] HTTP状态码:', response.status);
+    
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[豆包TTS] TTS请求失败:', response.status, '-', errorText);
+      console.error('[豆包TTS] TTS请求失败:', response.status);
+      console.error('[豆包TTS] 错误详情:', errorText);
       return null;
     }
 
@@ -159,6 +174,9 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
     return blob.arrayBuffer();
   } catch (error: any) {
     console.error('[豆包TTS] TTS失败:', error.message || error);
+    if (error.stack) {
+      console.error('[豆包TTS] 错误堆栈:', error.stack);
+    }
     return null;
   }
 }

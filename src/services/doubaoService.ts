@@ -1,6 +1,7 @@
 const CHAT_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
-const TTS_API_URL = 'https://ark.cn-beijing.volces.com/api/text2speech/v1';
+const TTS_API_URL = 'https://openspeech.bytedance.net/api/text2speech';
 const DEFAULT_MODEL = 'Doubao-Seed-2.0-Code';
+const TTS_APP_ID = '9465827598';
 
 interface DoubaoConfig {
   apiKey?: string;
@@ -137,12 +138,12 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${config.apiKey}`,
+        'X-Tts-Appid': TTS_APP_ID,
       },
       body: JSON.stringify({
-        model: 'Doubao-TTS-2.0',
-        input: text,
-        voice: 'zh_female_qingxin',
-        response_format: 'mp3',
+        text: text,
+        voice_type: 'zh_female_qingxin',
+        codec: 'mp3',
         rate: 0.8,
       }),
     });
@@ -167,6 +168,7 @@ export function getCurrentConfig() {
     hasApiKey: !!config.apiKey,
     apiKey: config.apiKey,
     model: config.model,
+    ttsAppId: TTS_APP_ID,
     chatUrl: CHAT_API_URL,
     ttsUrl: TTS_API_URL,
   };

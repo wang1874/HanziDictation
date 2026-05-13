@@ -1,6 +1,6 @@
 const CHAT_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 const TTS_API_URL = 'https://openspeech.bytedance.com/api/v1/tts';
-const DEFAULT_MODEL = 'ep-20241213164445-pk5jx';
+const DEFAULT_MODEL = 'doubao-seed-2-0-code-preview-260215';
 const TTS_APP_ID = '3740050812';
 const TTS_ACCESS_TOKEN = 'zPkdziOzNxMFoslkYxMa28wDZE6v';
 const TTS_CLUSTER_ID = 'volcano_tts';

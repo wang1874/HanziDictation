@@ -2,6 +2,7 @@ const CHAT_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 const TTS_API_URL = 'https://openspeech.bytedance.net/api/text2speech';
 const DEFAULT_MODEL = 'Doubao-Seed-2.0-Code';
 const TTS_APP_ID = '3740050812';
+const TTS_ACCESS_TOKEN = 'zPkdziOzNxMFoslkYxMa28wDZE6v';
 
 interface DoubaoConfig {
   apiKey?: string;
@@ -134,8 +135,8 @@ function getLocalFallbackExample(word: string): string {
 }
 
 export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null> {
-  if (!config.apiKey) {
-    console.log('[豆包TTS] 未配置API Key，无法使用豆包TTS');
+  if (!TTS_ACCESS_TOKEN) {
+    console.log('[豆包TTS] 未配置Access Token，无法使用豆包TTS');
     return null;
   }
 
@@ -143,13 +144,13 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
     console.log('[豆包TTS] 开始调用TTS API，输入:', text);
     console.log('[豆包TTS] API地址:', TTS_API_URL);
     console.log('[豆包TTS] APP ID:', TTS_APP_ID);
-    console.log('[豆包TTS] API Key前10位:', config.apiKey?.substring(0, 10) + '...');
+    console.log('[豆包TTS] Access Token前10位:', TTS_ACCESS_TOKEN.substring(0, 10) + '...');
     
     const response = await fetch(TTS_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`,
+        'Authorization': `Bearer ${TTS_ACCESS_TOKEN}`,
         'X-Tts-Appid': TTS_APP_ID,
       },
       body: JSON.stringify({
@@ -187,6 +188,7 @@ export function getCurrentConfig() {
     apiKey: config.apiKey,
     model: config.model,
     ttsAppId: TTS_APP_ID,
+    ttsAccessToken: TTS_ACCESS_TOKEN,
     chatUrl: CHAT_API_URL,
     ttsUrl: TTS_API_URL,
   };

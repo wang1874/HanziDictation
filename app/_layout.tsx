@@ -46,6 +46,13 @@ function RootLayoutContent() {
             headerBackTitle: '返回',
           }}
         />
+        <Stack.Screen
+          name="debug"
+          options={{
+            title: '豆包API调试',
+            headerBackTitle: '返回',
+          }}
+        />
       </Stack>
     </>
   );

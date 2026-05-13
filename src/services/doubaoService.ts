@@ -164,7 +164,7 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
           uid: 'user001',
         },
         audio: {
-          voice_type: 'zh_female_qingxin',
+          voice_type: 'BV001_streaming',
           encoding: 'mp3',
           rate: 24000,
           speed_ratio: 0.8,

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
-import { generateDictationExample, synthesizeSpeech } from '../src/services/doubaoService';
+import { generateDictationExample, synthesizeSpeech, getCurrentConfig } from '../src/services/doubaoService';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 
@@ -28,13 +28,19 @@ export default function DebugPage() {
     addLog(`输入: ${inputText}`);
 
     try {
-      addLog('正在调用豆包API...');
+      addLog('正在调用豆包Chat API...');
       const result = await generateDictationExample(inputText, 1);
-      addLog(`成功! 结果: ${result}`);
-      Alert.alert('成功', `生成的例句: ${result}`);
-    } catch (error) {
-      addLog(`失败! 错误: ${error}`);
-      Alert.alert('失败', `错误: ${error}`);
+      
+      if (result.includes('怎么写')) {
+        addLog(`⚠️ 结果: ${result} (这是本地回退例句，豆包API可能未正常工作)`);
+        Alert.alert('注意', `生成的例句: ${result}\n\n⚠️ 这是本地回退例句，豆包API可能未正常工作。请检查API密钥配置。`);
+      } else {
+        addLog(`✅ 成功! 结果: ${result}`);
+        Alert.alert('成功', `生成的例句: ${result}`);
+      }
+    } catch (error: any) {
+      addLog(`❌ 失败! 错误: ${error.message || error}`);
+      Alert.alert('失败', `错误: ${error.message || error}`);
     } finally {
       setIsTesting(false);
     }
@@ -55,7 +61,7 @@ export default function DebugPage() {
       const audioBuffer = await synthesizeSpeech(inputText);
       
       if (audioBuffer) {
-        addLog(`成功! 音频大小: ${audioBuffer.byteLength} bytes`);
+        addLog(`✅ 成功! 音频大小: ${audioBuffer.byteLength} bytes`);
         
         addLog('正在播放音频...');
         const blob = new Blob([audioBuffer], { type: 'audio/mp3' });
@@ -79,8 +85,7 @@ export default function DebugPage() {
         
         Alert.alert('成功', 'TTS测试成功，音频已播放（豆包语音）');
       } else {
-        addLog('豆包TTS失败，尝试系统语音...');
-        Alert.alert('豆包TTS失败', '尝试使用系统语音播放...');
+        addLog('❌ 豆包TTS失败，尝试系统语音...');
         
         addLog('使用系统语音播放...');
         Speech.speak(inputText, {
@@ -89,11 +94,11 @@ export default function DebugPage() {
         });
         
         addLog('系统语音播放完成');
-        Alert.alert('成功', '系统语音播放成功');
+        Alert.alert('豆包TTS失败', '已切换到系统语音播放');
       }
-    } catch (error) {
-      addLog(`失败! 错误: ${error}`);
-      Alert.alert('失败', `错误: ${error}`);
+    } catch (error: any) {
+      addLog(`❌ 失败! 错误: ${error.message || error}`);
+      Alert.alert('失败', `错误: ${error.message || error}`);
     } finally {
       setIsTesting(false);
     }
@@ -112,15 +117,20 @@ export default function DebugPage() {
     try {
       addLog('步骤1: 生成例句...');
       const example = await generateDictationExample(inputText, 1);
-      addLog(`例句: ${example}`);
+      
+      if (example.includes('怎么写')) {
+        addLog(`例句: ${example} (本地回退)`);
+      } else {
+        addLog(`例句: ${example} (豆包生成)`);
+      }
 
       addLog('步骤2: 合成语音...');
       const audioBuffer = await synthesizeSpeech(example);
       
       if (audioBuffer) {
-        addLog(`音频生成成功，大小: ${audioBuffer.byteLength} bytes`);
+        addLog(`✅ 音频生成成功，大小: ${audioBuffer.byteLength} bytes`);
         
-        addLog('步骤3: 播放音频...');
+        addLog('步骤3: 播放音频(豆包语音)...');
         const blob = new Blob([audioBuffer], { type: 'audio/mp3' });
         const uri = URL.createObjectURL(blob);
         
@@ -142,7 +152,7 @@ export default function DebugPage() {
         
         Alert.alert('成功', `完整流程测试成功!\n例句: ${example}\n使用豆包语音`);
       } else {
-        addLog('豆包TTS失败，使用系统语音');
+        addLog('❌ 豆包TTS失败，使用系统语音');
         
         addLog('步骤3: 使用系统语音播放...');
         Speech.speak(example, {
@@ -150,11 +160,11 @@ export default function DebugPage() {
           rate: 0.7,
         });
         
-        Alert.alert('部分成功', `例句生成成功: ${example}\n使用系统语音播放`);
+        Alert.alert('部分成功', `例句生成: ${example}\n使用系统语音播放`);
       }
-    } catch (error) {
-      addLog(`失败! 错误: ${error}`);
-      Alert.alert('失败', `错误: ${error}`);
+    } catch (error: any) {
+      addLog(`❌ 失败! 错误: ${error.message || error}`);
+      Alert.alert('失败', `错误: ${error.message || error}`);
     } finally {
       setIsTesting(false);
     }
@@ -179,12 +189,21 @@ export default function DebugPage() {
       
       addLog('系统语音播放完成');
       Alert.alert('成功', '系统语音测试成功');
-    } catch (error) {
-      addLog(`失败! 错误: ${error}`);
-      Alert.alert('失败', `错误: ${error}`);
+    } catch (error: any) {
+      addLog(`❌ 失败! 错误: ${error.message || error}`);
+      Alert.alert('失败', `错误: ${error.message || error}`);
     } finally {
       setIsTesting(false);
     }
+  };
+
+  const showConfig = () => {
+    const config = getCurrentConfig();
+    Alert.alert(
+      '当前配置',
+      `API密钥: ${config.apiKey || '未配置'}\n模型: ${config.model}\nChat API: ${config.chatUrl}\nTTS API: ${config.ttsUrl}`,
+      [{ text: '确定' }]
+    );
   };
 
   return (
@@ -236,6 +255,14 @@ export default function DebugPage() {
         </TouchableOpacity>
         
         <TouchableOpacity
+          style={[styles.button, styles.buttonConfig]}
+          onPress={showConfig}
+          disabled={isTesting}
+        >
+          <Text style={styles.buttonText}>查看配置</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
           style={[styles.button, styles.buttonClear]}
           onPress={clearLog}
           disabled={isTesting}
@@ -245,18 +272,26 @@ export default function DebugPage() {
       </View>
 
       <View style={styles.infoBox}>
-        <Text style={styles.infoTitle}>ℹ️ 说明</Text>
-        <Text style={styles.infoText}>• Chat API: 用于生成听写例句，测试结果显示正常</Text>
-        <Text style={styles.infoText}>• TTS API: 用于语音合成，若失败会自动使用系统语音</Text>
-        <Text style={styles.infoText}>• 系统语音: 使用设备自带的语音合成功能</Text>
-        <Text style={styles.infoText}>• 如果TTS失败，可能是API密钥没有开通TTS权限</Text>
+        <Text style={styles.infoTitle}>ℹ️ 常见问题</Text>
+        <Text style={styles.infoText}>• 如果Chat API返回"怎么写"，说明豆包API未正常工作</Text>
+        <Text style={styles.infoText}>• TTS失败通常是因为API密钥没有开通TTS权限</Text>
+        <Text style={styles.infoText}>• 需要在火山引擎控制台开通相关服务</Text>
+        <Text style={styles.infoText}>• 需要配置有效的API密钥才能使用豆包服务</Text>
+        <Text style={styles.infoText}>• 未缴费用户可能无法使用API服务</Text>
       </View>
 
       <View style={styles.logSection}>
         <Text style={styles.label}>调试日志:</Text>
         <ScrollView style={styles.log}>
           {log.map((item, index) => (
-            <Text key={index} style={styles.logItem}>{item}</Text>
+            <Text key={index} style={[
+              styles.logItem,
+              item.includes('✅') ? styles.logSuccess : 
+              item.includes('❌') ? styles.logError : 
+              item.includes('⚠️') ? styles.logWarning : styles.logItem
+            ]}>
+              {item}
+            </Text>
           ))}
           {log.length === 0 && (
             <Text style={styles.logEmpty}>点击上方按钮开始测试...</Text>
@@ -304,7 +339,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
-    backgroundColor: '#8B0000',
   },
   buttonChat: {
     backgroundColor: '#8B0000',
@@ -318,8 +352,11 @@ const styles = StyleSheet.create({
   buttonSystem: {
     backgroundColor: '#4169E1',
   },
-  buttonClear: {
+  buttonConfig: {
     backgroundColor: '#666',
+  },
+  buttonClear: {
+    backgroundColor: '#888',
   },
   buttonText: {
     color: '#FFF',
@@ -361,6 +398,15 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 5,
     fontFamily: 'monospace',
+  },
+  logSuccess: {
+    color: '#2E8B57',
+  },
+  logError: {
+    color: '#DC143C',
+  },
+  logWarning: {
+    color: '#FF8C00',
   },
   logEmpty: {
     fontSize: 14,

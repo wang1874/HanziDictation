@@ -18,12 +18,14 @@ export function configureDoubao(newConfig: DoubaoConfig) {
 
 export async function generateDictationExample(word: string, grade?: number): Promise<string> {
   if (!config.apiKey) {
-    console.log('未配置API Key，使用本地例句');
+    console.log('[豆包API] 未配置API Key，使用本地例句');
     return getLocalFallbackExample(word);
   }
 
   try {
     const prompt = buildPrompt(word, grade);
+    console.log('[豆包API] 开始调用Chat API，输入:', word);
+    
     const response = await fetch(`${CHAT_API_URL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -49,22 +51,27 @@ export async function generateDictationExample(word: string, grade?: number): Pr
 
     if (response.ok) {
       const data = await response.json();
+      console.log('[豆包API] Chat API响应:', JSON.stringify(data));
+      
       const aiExample = data.choices?.[0]?.message?.content?.trim();
       if (aiExample && aiExample.includes('，')) {
         const parts = aiExample.split('，');
         if (parts.length >= 2) {
-          console.log('使用豆包生成例句:', aiExample);
+          console.log('[豆包API] 使用豆包生成例句:', aiExample);
           return aiExample;
         }
+      } else {
+        console.log('[豆包API] 响应格式不正确:', aiExample);
       }
     } else {
-      console.error('豆包API响应失败:', response.status);
+      const errorText = await response.text();
+      console.error('[豆包API] Chat API响应失败:', response.status, '-', errorText);
     }
-  } catch (error) {
-    console.error('豆包API调用失败:', error);
+  } catch (error: any) {
+    console.error('[豆包API] Chat API调用失败:', error.message || error);
   }
 
-  console.log('豆包不可用，使用本地例句:', word);
+  console.log('[豆包API] 豆包不可用，使用本地例句:', word);
   return getLocalFallbackExample(word);
 }
 
@@ -119,12 +126,12 @@ function getLocalFallbackExample(word: string): string {
 
 export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null> {
   if (!config.apiKey) {
-    console.log('未配置API Key，无法使用豆包TTS');
+    console.log('[豆包TTS] 未配置API Key，无法使用豆包TTS');
     return null;
   }
 
   try {
-    console.log('尝试使用豆包TTS合成语音...');
+    console.log('[豆包TTS] 开始调用TTS API，输入:', text);
     const response = await fetch(TTS_API_URL, {
       method: 'POST',
       headers: {
@@ -142,21 +149,32 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`豆包TTS请求失败: ${response.status} - ${errorText}`);
+      console.error('[豆包TTS] TTS请求失败:', response.status, '-', errorText);
       return null;
     }
 
     const blob = await response.blob();
-    console.log('豆包TTS合成成功，音频大小:', blob.size, 'bytes');
+    console.log('[豆包TTS] 合成成功，音频大小:', blob.size, 'bytes');
     return blob.arrayBuffer();
-  } catch (error) {
-    console.error('豆包TTS失败:', error);
+  } catch (error: any) {
+    console.error('[豆包TTS] TTS失败:', error.message || error);
     return null;
   }
+}
+
+export function getCurrentConfig() {
+  return {
+    hasApiKey: !!config.apiKey,
+    apiKey: config.apiKey,
+    model: config.model,
+    chatUrl: CHAT_API_URL,
+    ttsUrl: TTS_API_URL,
+  };
 }
 
 export default {
   configureDoubao,
   generateDictationExample,
   synthesizeSpeech,
+  getCurrentConfig,
 };

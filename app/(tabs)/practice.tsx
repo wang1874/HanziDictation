@@ -33,7 +33,7 @@ const pinyinMap: Record<string, string> = {
   '爱': 'ài', '心': 'xīn', '思': 'sī', '想': 'xiǎng', '知': 'zhī',
   '道': 'dào', '习': 'xí', '写': 'xiě', '词': 'cí', '作': 'zuò',
   '捉': 'zhuō', '条': 'tiáo', '爬': 'pá', '姐': 'jiě', '您': 'nín',
-  '草': 'cǎo', '房': 'fáng',
+  '房': 'fáng',
 };
 
 const getPinyin = (text: string): string => {

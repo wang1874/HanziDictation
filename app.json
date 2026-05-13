@@ -4,12 +4,12 @@
     "slug": "HanziDictation",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.svg",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "hanzidictation",
     "splash": {
-      "image": "./assets/icon.svg",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFF8E7"
     },
@@ -19,14 +19,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.svg",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFF8E7"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.example.hanzidictation"
     },
     "web": {
-      "favicon": "./assets/icon.svg",
+      "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "plugins": [

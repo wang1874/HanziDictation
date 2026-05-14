@@ -152,31 +152,26 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer; ${TTS_ACCESS_TOKEN}`,
+        'x-api-key': TTS_ACCESS_TOKEN,
       },
       body: JSON.stringify({
         app: {
-          appid: TTS_APP_ID,
-          token: TTS_ACCESS_TOKEN,
           cluster: TTS_CLUSTER_ID,
         },
         user: {
           uid: 'user001',
         },
         audio: {
-          voice_type: 'BV001_streaming',
+          voice_type: 'BV001',
           encoding: 'mp3',
-          rate: 24000,
-          speed_ratio: 0.8,
+          speed_ratio: 1.0,
           volume_ratio: 1.0,
           pitch_ratio: 1.0,
         },
         request: {
           reqid: `req-${Date.now()}`,
           text: text,
-          text_type: 'plain',
           operation: 'query',
-          silence_duration: 125,
         },
       }),
     });

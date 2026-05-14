@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,24 @@ import {
   Alert,
   SafeAreaView,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSpeech } from '../src/hooks/useSpeech';
 import { Word } from '../src/types';
+import { generateBatchDictation } from '../src/services/doubaoService';
+import { Audio } from 'expo-av';
+import { pinyinMap } from '../src/utils/pinyinMap';
 
-type DictationMode = 'character' | 'word' | 'sentence';
+type DictationMode = 'single' | 'phrase';
+
+interface DictationItem {
+  word: string;
+  speechText: string;
+  audioBuffers?: ArrayBuffer[];
+}
+
+const DING_SOUND_URI = 'https://www.soundjay.com/buttons/sounds/ding-odon-1.mp3';
 
 export default function DictationPage() {
   const { grade, mode, lessonId } = useLocalSearchParams<{
@@ -20,102 +32,222 @@ export default function DictationPage() {
     mode: string;
     lessonId?: string;
   }>();
-  const { speak, stop, setRepeatCount, currentSource } = useSpeech();
+  const { speakOnce, stop, currentSource } = useSpeech();
 
-  const [dictationMode, setDictationMode] = useState<DictationMode>('character');
+  const [dictationMode, setDictationMode] = useState<DictationMode>('single');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [knownWords, setKnownWords] = useState(0);
-  const [repeatCount] = useState(2);
   const [dictationItems, setDictationItems] = useState<Word[]>([]);
-  const [examples, setExamples] = useState<Map<number, string>>(new Map());
+  const [speechData, setSpeechData] = useState<DictationItem[]>([]);
+  const [introText, setIntroText] = useState('');
+  const [endingText, setEndingText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [dictationStarted, setDictationStarted] = useState(false);
+  const [dictationFinished, setDictationFinished] = useState(false);
+  
+  const dingSoundRef = useRef<Audio.Sound | null>(null);
+  const isPlayingRef = useRef(false);
+
+  const playDingSound = useCallback(async () => {
+    try {
+      if (dingSoundRef.current) {
+        await dingSoundRef.current.unloadAsync();
+      }
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: DING_SOUND_URI },
+        { shouldPlay: true }
+      );
+      dingSoundRef.current = sound;
+      await sound.setOnPlaybackStatusUpdate((status: any) => {
+        if (status.didJustFinish) {
+          sound.unloadAsync();
+        }
+      });
+    } catch (error) {
+      console.error('播放提示音失败:', error);
+      speakOnce('叮');
+    }
+  }, [speakOnce]);
+
+  const preloadAllAudio = useCallback(async (items: DictationItem[]) => {
+    setIsLoadingAudio(true);
+    console.log('[听写] 开始预加载所有音频...');
+    
+    const itemBuffers: DictationItem[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      console.log(`[听写] 正在预加载第 ${i + 1}/${items.length} 项:`, item.word);
+      
+      const buffers: ArrayBuffer[] = [];
+      const texts = item.speechText.split('，').filter(t => t.trim());
+      
+      for (const text of texts) {
+        const buffer = await synthesizeSpeechText(text.trim());
+        if (buffer) {
+          buffers.push(buffer);
+        }
+      }
+      
+      itemBuffers.push({ ...item, audioBuffers: buffers });
+    }
+    
+    setSpeechData(itemBuffers);
+    setIsLoadingAudio(false);
+    console.log('[听写] 音频预加载完成！');
+  }, []);
+
+  const synthesizeSpeechText = async (text: string): Promise<ArrayBuffer | null> => {
+    const { synthesizeSpeech } = await import('../src/services/doubaoService');
+    return await synthesizeSpeech(text);
+  };
+
+  const playBufferWithExpo = useCallback(async (buffer: ArrayBuffer) => {
+    try {
+      const blob = new Blob([buffer], { type: 'audio/mp3' });
+      const uri = URL.createObjectURL(blob);
+      
+      const { sound } = await Audio.Sound.createAsync({ uri });
+      
+      await new Promise<void>((resolve) => {
+        sound.setOnPlaybackStatusUpdate((status: any) => {
+          if (status.didJustFinish) {
+            sound.unloadAsync();
+            URL.revokeObjectURL(uri);
+            resolve();
+          }
+        });
+        sound.playAsync();
+      });
+    } catch (error) {
+      console.error('播放音频失败:', error);
+      await speakOnce(' ');
+    }
+  }, [speakOnce]);
+
+  const playIntro = useCallback(async () => {
+    console.log('[听写] 播放开场白');
+    await speakOnce(introText);
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }, [introText, speakOnce]);
+
+  const playItem = useCallback(async (item: DictationItem, isFirst: boolean) => {
+    if (!item.audioBuffers || item.audioBuffers.length === 0) {
+      console.log('[听写] 使用系统语音播放:', item.speechText);
+      await speakOnce(item.speechText);
+      return;
+    }
+
+    console.log('[听写] 播放:', item.speechText);
+    
+    for (let i = 0; i < item.audioBuffers.length; i++) {
+      const buffer = item.audioBuffers[i];
+      
+      if (i === 0) {
+        await playDingSound();
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
+      await playBufferWithExpo(buffer);
+      
+      if (i < item.audioBuffers.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+  }, [playDingSound, playBufferWithExpo, speakOnce]);
+
+  const playEnding = useCallback(async () => {
+    console.log('[听写] 播放结局语');
+    await speakOnce(endingText);
+  }, [endingText, speakOnce]);
+
+  const playCurrentItem = useCallback(async () => {
+    if (speechData.length > 0 && currentIndex < speechData.length) {
+      setIsSpeaking(true);
+      await playItem(speechData[currentIndex], currentIndex === 0);
+      setIsSpeaking(false);
+    }
+  }, [speechData, currentIndex, playItem]);
 
   useEffect(() => {
     const loadData = async () => {
       const gradeNum = parseInt(grade || '3', 10);
-      const modeValue = mode || 'character';
+      const modeValue = mode || 'single';
       setDictationMode(modeValue as DictationMode);
-      setRepeatCount(repeatCount);
       
       let data: Word[] = [];
-      
       const { getWordsByGrade, getWordsByLesson } = await import('../src/data/wordDatabase');
       
       if (lessonId) {
         data = getWordsByLesson(lessonId);
-      } else if (modeValue === 'word') {
+      } else if (modeValue === 'phrase') {
         data = getWordsByGrade(gradeNum).filter(w => w.type === 'word');
-      } else if (modeValue === 'character') {
-        data = getWordsByGrade(gradeNum).filter(w => w.type === 'character');
       } else {
-        data = getWordsByGrade(gradeNum);
+        data = getWordsByGrade(gradeNum).filter(w => w.type === 'character');
       }
       
       const shuffled = [...data].sort(() => Math.random() - 0.5);
-      setDictationItems(shuffled);
+      const selected = shuffled.slice(0, Math.min(10, shuffled.length));
+      setDictationItems(selected);
+      
+      const { generateBatchDictation } = await import('../src/services/doubaoService');
+      const result = await generateBatchDictation(
+        selected.map(w => w.text),
+        modeValue as DictationMode,
+        gradeNum
+      );
+      
+      if (result) {
+        setIntroText(result.intro);
+        setEndingText(result.ending);
+        await preloadAllAudio(result.items);
+      }
+      
       setIsLoading(false);
     };
     
     loadData();
-  }, [grade, mode, lessonId, repeatCount, setRepeatCount]);
-
-  const loadExampleForCurrentItem = useCallback(async () => {
-    if (dictationItems.length > 0 && currentIndex < dictationItems.length) {
-      if (!examples.has(currentIndex)) {
-        const { generateDictationExample } = await import('../src/services/doubaoService');
-        const word = dictationItems[currentIndex];
-        try {
-          const example = await generateDictationExample(word.text, word.grade);
-          setExamples(prev => new Map(prev).set(currentIndex, example));
-        } catch (error) {
-          console.error('获取例句失败:', error);
-          setExamples(prev => new Map(prev).set(currentIndex, word.text));
-        }
-      }
-    }
-  }, [dictationItems, currentIndex, examples]);
-
-  const speakCurrentItem = useCallback(async () => {
-    if (dictationItems.length > 0 && currentIndex < dictationItems.length) {
-      setIsSpeaking(true);
-      await loadExampleForCurrentItem();
-      const example = examples.get(currentIndex) || dictationItems[currentIndex].text;
-      speak(example);
-      setTimeout(() => setIsSpeaking(false), 1000);
-    }
-  }, [dictationItems, currentIndex, examples, loadExampleForCurrentItem, speak]);
-
-  useEffect(() => {
-    if (dictationItems.length > 0) {
-      loadExampleForCurrentItem();
-      speakCurrentItem();
-    }
+    
     return () => {
       stop();
+      if (dingSoundRef.current) {
+        dingSoundRef.current.unloadAsync();
+      }
     };
-  }, [currentIndex, dictationItems, loadExampleForCurrentItem, speakCurrentItem]);
+  }, [grade, mode, lessonId, preloadAllAudio, stop]);
 
-  const handlePrev = useCallback(() => {
-    if (currentIndex > 0) {
-      setShowResult(false);
-      setCurrentIndex(currentIndex - 1);
-    }
-  }, [currentIndex]);
+  const startDictation = useCallback(async () => {
+    if (isPlayingRef.current) return;
+    isPlayingRef.current = true;
+    
+    setDictationStarted(true);
+    await playIntro();
+    await new Promise(resolve => setTimeout(resolve, 800));
+    await playCurrentItem();
+    
+    isPlayingRef.current = false;
+  }, [playIntro, playCurrentItem]);
+
+  const handleReSpeak = useCallback(async () => {
+    if (isPlayingRef.current) return;
+    isPlayingRef.current = true;
+    setIsSpeaking(true);
+    await playCurrentItem();
+    setIsSpeaking(false);
+    isPlayingRef.current = false;
+  }, [playCurrentItem]);
 
   const handleNext = useCallback(() => {
     setShowResult(false);
-    if (currentIndex < dictationItems.length - 1) {
+    if (currentIndex < speechData.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      Alert.alert(
-        '听写完成',
-        `本次听写结束！你掌握了 ${knownWords} / ${dictationItems.length} 个内容`,
-        [{ text: '返回', onPress: () => router.back() }]
-      );
+      setDictationFinished(true);
+      playEnding();
     }
-  }, [currentIndex, dictationItems.length, knownWords]);
+  }, [currentIndex, speechData.length, playEnding]);
 
   const handleShowResult = useCallback(() => {
     setShowResult(true);
@@ -130,32 +262,15 @@ export default function DictationPage() {
     handleNext();
   }, [handleNext]);
 
-  const handleReSpeak = useCallback(() => {
-    speakCurrentItem();
-  }, [speakCurrentItem]);
-
   const getModeLabel = () => {
-    switch (dictationMode) {
-      case 'character': return '单字听写';
-      case 'word': return '词语听写';
-      case 'sentence': return '句子听写';
-      default: return '听写';
-    }
+    return dictationMode === 'single' ? '单字听写' : '词语听写';
   };
 
   const getVoiceLabel = () => {
     if (currentSource === 'doubao') {
-      return (
-        <View style={styles.voiceTagContainer}>
-          <Text style={styles.doubaoVoiceTag}>🎙️ 豆包语音</Text>
-        </View>
-      );
+      return <Text style={styles.doubaoVoiceTag}>🎙️ 豆包语音</Text>;
     }
-    return (
-      <View style={styles.voiceTagContainer}>
-        <Text style={styles.systemVoiceTag}>📢 系统语音</Text>
-      </View>
-    );
+    return <Text style={styles.systemVoiceTag}>📢 系统语音</Text>;
   };
 
   if (isLoading) {
@@ -163,7 +278,10 @@ export default function DictationPage() {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#8B0000" />
-          <Text style={styles.loadingText}>正在加载...</Text>
+          <Text style={styles.loadingText}>正在准备听写内容...</Text>
+          {isLoadingAudio && (
+            <Text style={styles.loadingSubText}>正在合成语音，请稍候</Text>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -177,8 +295,8 @@ export default function DictationPage() {
     );
   }
 
-  const currentItem = dictationItems[currentIndex];
-  const currentExample = examples.get(currentIndex);
+  const currentWord = dictationItems[currentIndex];
+  const currentSpeech = speechData[currentIndex];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -186,64 +304,96 @@ export default function DictationPage() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>← 返回</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{grade}年级{getModeLabel()}</Text>
+        <Text style={styles.headerTitle}>{grade}年级 {getModeLabel()}</Text>
         <View style={styles.placeholder} />
       </View>
 
       <View style={styles.progressBar}>
         <Text style={styles.progressText}>
-          第 {currentIndex + 1} / {dictationItems.length} 题
+          第 {currentIndex + 1} / {speechData.length} 题
         </Text>
         {getVoiceLabel()}
       </View>
 
-      <View style={styles.speakSection}>
-        <TouchableOpacity 
-          style={[styles.speakButton, isSpeaking && styles.speakButtonActive]} 
-          onPress={handleReSpeak}
-          disabled={isSpeaking}
-        >
-          <Text style={styles.speakButtonText}>
-            {isSpeaking ? '🔊 正在播放...' : '🔊 再听一遍'}
+      {!dictationStarted ? (
+        <View style={styles.startSection}>
+          <Text style={styles.startTitle}>🎯 听写准备</Text>
+          <Text style={styles.startInfo}>本次听写共 {speechData.length} 个内容</Text>
+          <Text style={styles.startInfo}>
+            模式：{dictationMode === 'single' ? '单字听写（多组词格式）' : '词语听写（造句模式）'}
           </Text>
-        </TouchableOpacity>
-        {currentExample && (
-          <Text style={styles.exampleText}>{currentExample}</Text>
-        )}
-      </View>
-
-      <View style={styles.navButtons}>
-        <TouchableOpacity
-          style={[styles.navButton, currentIndex === 0 && styles.navButtonDisabled]}
-          onPress={handlePrev}
-          disabled={currentIndex === 0}
-        >
-          <Text style={[styles.navButtonText, currentIndex === 0 && styles.navButtonTextDisabled]}>
-            ◀
+          <TouchableOpacity
+            style={styles.startButton}
+            onPress={startDictation}
+            disabled={isLoadingAudio}
+          >
+            <Text style={styles.startButtonText}>
+              {isLoadingAudio ? '🔄 准备中...' : '🎤 开始听写'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : dictationFinished ? (
+        <View style={styles.finishSection}>
+          <Text style={styles.finishTitle}>🎉 听写完成</Text>
+          <Text style={styles.finishInfo}>
+            你掌握了 {knownWords} / {speechData.length} 个内容
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.showResultBtn} onPress={handleShowResult}>
-          <Text style={styles.showResultBtnText}>显示答案</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navButton} onPress={handleNext}>
-          <Text style={styles.navButtonText}>▶</Text>
-        </TouchableOpacity>
-      </View>
-
-      {showResult && (
-        <View style={styles.resultSection}>
-          <Text style={styles.resultLabel}>正确答案</Text>
-          <Text style={styles.resultCharacter}>{currentItem.text}</Text>
-          <Text style={styles.resultPinyin}>{currentItem.pinyin}</Text>
-          <View style={styles.resultActions}>
-            <TouchableOpacity style={styles.correctButton} onPress={handleCorrect}>
-              <Text style={styles.correctText}>✓ 认识了</Text>
+          <TouchableOpacity
+            style={styles.returnButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.returnButtonText}>返回</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <View style={styles.speakSection}>
+            <TouchableOpacity 
+              style={[styles.speakButton, isSpeaking && styles.speakButtonActive]} 
+              onPress={handleReSpeak}
+              disabled={isSpeaking}
+            >
+              <Text style={styles.speakButtonText}>
+                {isSpeaking ? '🔊 正在播放...' : '🔊 再听一遍'}
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.wrongButton} onPress={handleWrong}>
-              <Text style={styles.wrongText}>✗ 不认识</Text>
+            {currentSpeech && (
+              <Text style={styles.exampleText}>{currentSpeech.speechText}</Text>
+            )}
+          </View>
+
+          <View style={styles.navButtons}>
+            <TouchableOpacity
+              style={[styles.navButton, currentIndex === 0 && styles.navButtonDisabled]}
+              onPress={() => currentIndex > 0 && setCurrentIndex(currentIndex - 1)}
+              disabled={currentIndex === 0}
+            >
+              <Text style={styles.navButtonText}>◀</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.showResultBtn} onPress={handleShowResult}>
+              <Text style={styles.showResultBtnText}>显示答案</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.navButton} onPress={handleNext}>
+              <Text style={styles.navButtonText}>▶</Text>
             </TouchableOpacity>
           </View>
-        </View>
+
+          {showResult && currentWord && (
+            <ScrollView style={styles.resultSection}>
+              <Text style={styles.resultLabel}>正确答案</Text>
+              <Text style={styles.resultCharacter}>{currentWord.text}</Text>
+              <Text style={styles.resultPinyin}>{pinyinMap[currentWord.text] || currentWord.pinyin}</Text>
+              <View style={styles.resultActions}>
+                <TouchableOpacity style={styles.correctButton} onPress={handleCorrect}>
+                  <Text style={styles.correctText}>✓ 认识了</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.wrongButton} onPress={handleWrong}>
+                  <Text style={styles.wrongText}>✗ 不认识</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          )}
+        </>
       )}
     </SafeAreaView>
   );
@@ -261,8 +411,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 16,
+    fontSize: 18,
     color: '#8B0000',
+    fontWeight: 'bold',
+  },
+  loadingSubText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#999',
   },
   header: {
     padding: 16,
@@ -296,9 +452,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#8B0000',
   },
-  voiceTagContainer: {
-    marginTop: 4,
-  },
   doubaoVoiceTag: {
     fontSize: 12,
     color: '#FF4500',
@@ -307,6 +460,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
+    marginTop: 4,
     overflow: 'hidden',
   },
   systemVoiceTag: {
@@ -317,7 +471,65 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
+    marginTop: 4,
     overflow: 'hidden',
+  },
+  startSection: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  startTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#8B0000',
+    marginBottom: 20,
+  },
+  startInfo: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 8,
+  },
+  startButton: {
+    backgroundColor: '#8B0000',
+    paddingHorizontal: 40,
+    paddingVertical: 16,
+    borderRadius: 30,
+    marginTop: 20,
+  },
+  startButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  finishSection: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  finishTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginBottom: 20,
+  },
+  finishInfo: {
+    fontSize: 18,
+    color: '#666',
+    marginBottom: 20,
+  },
+  returnButton: {
+    backgroundColor: '#8B0000',
+    paddingHorizontal: 40,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  returnButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFF',
   },
   speakSection: {
     padding: 16,
@@ -368,9 +580,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#8B0000',
   },
-  navButtonTextDisabled: {
-    color: '#999',
-  },
   showResultBtn: {
     flex: 1,
     backgroundColor: '#8B0000',
@@ -388,30 +597,32 @@ const styles = StyleSheet.create({
     margin: 16,
     padding: 20,
     borderRadius: 12,
-    alignItems: 'center',
     borderWidth: 2,
     borderColor: '#8B0000',
+    maxHeight: 250,
   },
   resultLabel: {
     fontSize: 14,
     color: '#666',
     marginBottom: 8,
+    textAlign: 'center',
   },
   resultCharacter: {
     fontSize: 56,
     fontWeight: 'bold',
     color: '#8B0000',
+    textAlign: 'center',
   },
   resultPinyin: {
     fontSize: 18,
     color: '#666',
     marginTop: 8,
     marginBottom: 16,
+    textAlign: 'center',
   },
   resultActions: {
     flexDirection: 'row',
     gap: 12,
-    width: '100%',
   },
   correctButton: {
     flex: 1,

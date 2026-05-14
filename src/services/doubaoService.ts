@@ -1,3 +1,5 @@
+import { audioCache } from './audioCacheService';
+
 const CHAT_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 const TTS_API_URL = 'https://openspeech.bytedance.com/api/v1/tts';
 const DEFAULT_MODEL = 'doubao-seed-2-0-code-preview-260215';
@@ -12,15 +14,14 @@ interface DoubaoConfig {
 interface DictationItem {
   word: string;
   speechText: string;
-  audioBuffer?: ArrayBuffer;
+  audioPath?: string;
+  audioBuffers?: ArrayBuffer[];
 }
 
 interface BatchDictationResult {
   intro: string;
   items: DictationItem[];
   ending: string;
-  introAudio?: ArrayBuffer;
-  endingAudio?: ArrayBuffer;
 }
 
 let config: DoubaoConfig = {
@@ -258,13 +259,30 @@ function getLocalFallbackExample(word: string): string {
 }
 
 export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null> {
+  const hasCache = await audioCache.hasCache(text);
+  if (hasCache) {
+    console.log('[豆包TTS] 使用缓存音频:', text);
+    const cachePath = await audioCache.getAudio(text);
+    if (cachePath) {
+      try {
+        const base64 = await (await fetch(`data:audio/mp3;base64,${await fetch(cachePath).then(r => r.text())}`)).text();
+        const response = await fetch(cachePath);
+        const blob = await response.blob();
+        const buffer = await blob.arrayBuffer();
+        return buffer;
+      } catch (error) {
+        console.error('[豆包TTS] 读取缓存失败:', error);
+      }
+    }
+  }
+
   if (!TTS_ACCESS_TOKEN) {
     console.log('[豆包TTS] 未配置Access Token，无法使用豆包TTS');
     return null;
   }
 
   try {
-    console.log('[豆包TTS] 开始调用TTS API，输入:', text);
+    console.log('[豆包TTS] 调用TTS API，输入:', text);
     
     const response = await fetch(TTS_API_URL, {
       method: 'POST',
@@ -310,8 +328,12 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
         byteNumbers[i] = byteCharacters.charCodeAt(i);
       }
       const byteArray = new Uint8Array(byteNumbers);
-      console.log('[豆包TTS] 合成成功，音频大小:', byteArray.length, 'bytes');
-      return byteArray.buffer;
+      const buffer = byteArray.buffer;
+      
+      console.log('[豆包TTS] 合成成功，保存到缓存');
+      await audioCache.saveAudio(text, buffer);
+      
+      return buffer;
     } else {
       console.error('[豆包TTS] 响应错误:', data.code, data.message);
       return null;
@@ -320,6 +342,15 @@ export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null
     console.error('[豆包TTS] TTS失败:', error.message || error);
     return null;
   }
+}
+
+export async function synthesizeAndCache(text: string): Promise<string | null> {
+  const buffer = await synthesizeSpeech(text);
+  if (buffer) {
+    const cachePath = await audioCache.saveAudio(text, buffer);
+    return cachePath;
+  }
+  return null;
 }
 
 export function getCurrentConfig() {
@@ -334,10 +365,14 @@ export function getCurrentConfig() {
   };
 }
 
+export { audioCache };
+
 export default {
   configureDoubao,
   generateDictationExample,
   generateBatchDictation,
   synthesizeSpeech,
+  synthesizeAndCache,
+  audioCache,
   getCurrentConfig,
 };

@@ -12,16 +12,17 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSpeech } from '../src/hooks/useSpeech';
 import { Word } from '../src/types';
-import { generateBatchDictation } from '../src/services/doubaoService';
+import { generateBatchDictation, audioCache } from '../src/services/doubaoService';
 import { Audio } from 'expo-av';
 import { pinyinMap } from '../src/utils/pinyinMap';
+import * as FileSystem from 'expo-file-system';
 
 type DictationMode = 'single' | 'phrase';
 
-interface DictationItem {
+interface AudioItem {
   word: string;
   speechText: string;
-  audioBuffers?: ArrayBuffer[];
+  audioPath?: string;
 }
 
 const DING_SOUND_URI = 'https://www.soundjay.com/buttons/sounds/ding-odon-1.mp3';
@@ -39,9 +40,9 @@ export default function DictationPage() {
   const [showResult, setShowResult] = useState(false);
   const [knownWords, setKnownWords] = useState(0);
   const [dictationItems, setDictationItems] = useState<Word[]>([]);
-  const [speechData, setSpeechData] = useState<DictationItem[]>([]);
-  const [introText, setIntroText] = useState('');
-  const [endingText, setEndingText] = useState('');
+  const [audioItems, setAudioItems] = useState<AudioItem[]>([]);
+  const [introAudioPath, setIntroAudioPath] = useState<string>('');
+  const [endingAudioPath, setEndingAudioPath] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -50,6 +51,31 @@ export default function DictationPage() {
   
   const dingSoundRef = useRef<Audio.Sound | null>(null);
   const isPlayingRef = useRef(false);
+
+  const playLocalAudio = useCallback(async (audioPath: string) => {
+    try {
+      if (dingSoundRef.current) {
+        await dingSoundRef.current.unloadAsync();
+      }
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioPath },
+        { shouldPlay: true }
+      );
+      dingSoundRef.current = sound;
+      
+      return new Promise<void>((resolve) => {
+        sound.setOnPlaybackStatusUpdate((status: any) => {
+          if (status.didJustFinish) {
+            sound.unloadAsync();
+            resolve();
+          }
+        });
+      });
+    } catch (error) {
+      console.error('[音频] 播放失败:', error);
+      return;
+    }
+  }, []);
 
   const playDingSound = useCallback(async () => {
     try {
@@ -72,104 +98,83 @@ export default function DictationPage() {
     }
   }, [speakOnce]);
 
-  const preloadAllAudio = useCallback(async (items: DictationItem[]) => {
+  const synthesizeAndCache = useCallback(async (text: string): Promise<string | null> => {
+    console.log('[听写] 合成并缓存:', text);
+    const { synthesizeSpeech } = await import('../src/services/doubaoService');
+    const buffer = await synthesizeSpeech(text);
+    
+    if (buffer) {
+      const path = await audioCache.saveAudio(text, buffer);
+      return path;
+    }
+    return null;
+  }, []);
+
+  const preloadAllAudio = useCallback(async (items: AudioItem[], intro: string, ending: string) => {
     setIsLoadingAudio(true);
     console.log('[听写] 开始预加载所有音频...');
     
-    const itemBuffers: DictationItem[] = [];
+    const newItems: AudioItem[] = [];
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      console.log(`[听写] 正在预加载第 ${i + 1}/${items.length} 项:`, item.word);
+      console.log(`[听写] 处理第 ${i + 1}/${items.length} 项:`, item.word);
       
-      const buffers: ArrayBuffer[] = [];
-      const texts = item.speechText.split('，').filter(t => t.trim());
-      
-      for (const text of texts) {
-        const buffer = await synthesizeSpeechText(text.trim());
-        if (buffer) {
-          buffers.push(buffer);
-        }
-      }
-      
-      itemBuffers.push({ ...item, audioBuffers: buffers });
+      const audioPath = await synthesizeAndCache(item.speechText);
+      newItems.push({ ...item, audioPath: audioPath || undefined });
     }
     
-    setSpeechData(itemBuffers);
+    console.log('[听写] 合成开场白:', intro);
+    const introPath = await synthesizeAndCache(intro);
+    setIntroAudioPath(introPath || '');
+    
+    console.log('[听写] 合成结局语:', ending);
+    const endingPath = await synthesizeAndCache(ending);
+    setEndingAudioPath(endingPath || '');
+    
+    setAudioItems(newItems);
     setIsLoadingAudio(false);
     console.log('[听写] 音频预加载完成！');
-  }, []);
-
-  const synthesizeSpeechText = async (text: string): Promise<ArrayBuffer | null> => {
-    const { synthesizeSpeech } = await import('../src/services/doubaoService');
-    return await synthesizeSpeech(text);
-  };
-
-  const playBufferWithExpo = useCallback(async (buffer: ArrayBuffer) => {
-    try {
-      const blob = new Blob([buffer], { type: 'audio/mp3' });
-      const uri = URL.createObjectURL(blob);
-      
-      const { sound } = await Audio.Sound.createAsync({ uri });
-      
-      await new Promise<void>((resolve) => {
-        sound.setOnPlaybackStatusUpdate((status: any) => {
-          if (status.didJustFinish) {
-            sound.unloadAsync();
-            URL.revokeObjectURL(uri);
-            resolve();
-          }
-        });
-        sound.playAsync();
-      });
-    } catch (error) {
-      console.error('播放音频失败:', error);
-      await speakOnce(' ');
-    }
-  }, [speakOnce]);
+  }, [synthesizeAndCache]);
 
   const playIntro = useCallback(async () => {
     console.log('[听写] 播放开场白');
-    await speakOnce(introText);
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }, [introText, speakOnce]);
-
-  const playItem = useCallback(async (item: DictationItem, isFirst: boolean) => {
-    if (!item.audioBuffers || item.audioBuffers.length === 0) {
-      console.log('[听写] 使用系统语音播放:', item.speechText);
-      await speakOnce(item.speechText);
-      return;
+    if (introAudioPath) {
+      await playLocalAudio(introAudioPath);
+    } else {
+      await speakOnce('小朋友们，准备好了吗？让我们开始听写吧！');
     }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }, [introAudioPath, playLocalAudio, speakOnce]);
 
+  const playItem = useCallback(async (item: AudioItem) => {
     console.log('[听写] 播放:', item.speechText);
     
-    for (let i = 0; i < item.audioBuffers.length; i++) {
-      const buffer = item.audioBuffers[i];
-      
-      if (i === 0) {
-        await playDingSound();
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-      
-      await playBufferWithExpo(buffer);
-      
-      if (i < item.audioBuffers.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+    await playDingSound();
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    if (item.audioPath) {
+      await playLocalAudio(item.audioPath);
+    } else {
+      await speakOnce(item.speechText);
     }
-  }, [playDingSound, playBufferWithExpo, speakOnce]);
+  }, [playDingSound, playLocalAudio, speakOnce]);
 
   const playEnding = useCallback(async () => {
     console.log('[听写] 播放结局语');
-    await speakOnce(endingText);
-  }, [endingText, speakOnce]);
+    if (endingAudioPath) {
+      await playLocalAudio(endingAudioPath);
+    } else {
+      await speakOnce('今天的听写就到这里，写完记得再检查一遍哦！你们真棒！');
+    }
+  }, [endingAudioPath, playLocalAudio, speakOnce]);
 
   const playCurrentItem = useCallback(async () => {
-    if (speechData.length > 0 && currentIndex < speechData.length) {
+    if (audioItems.length > 0 && currentIndex < audioItems.length) {
       setIsSpeaking(true);
-      await playItem(speechData[currentIndex], currentIndex === 0);
+      await playItem(audioItems[currentIndex]);
       setIsSpeaking(false);
     }
-  }, [speechData, currentIndex, playItem]);
+  }, [audioItems, currentIndex, playItem]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -200,9 +205,7 @@ export default function DictationPage() {
       );
       
       if (result) {
-        setIntroText(result.intro);
-        setEndingText(result.ending);
-        await preloadAllAudio(result.items);
+        await preloadAllAudio(result.items, result.intro, result.ending);
       }
       
       setIsLoading(false);
@@ -241,13 +244,13 @@ export default function DictationPage() {
 
   const handleNext = useCallback(() => {
     setShowResult(false);
-    if (currentIndex < speechData.length - 1) {
+    if (currentIndex < audioItems.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
       setDictationFinished(true);
       playEnding();
     }
-  }, [currentIndex, speechData.length, playEnding]);
+  }, [currentIndex, audioItems.length, playEnding]);
 
   const handleShowResult = useCallback(() => {
     setShowResult(true);
@@ -296,7 +299,7 @@ export default function DictationPage() {
   }
 
   const currentWord = dictationItems[currentIndex];
-  const currentSpeech = speechData[currentIndex];
+  const currentAudio = audioItems[currentIndex];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -310,7 +313,7 @@ export default function DictationPage() {
 
       <View style={styles.progressBar}>
         <Text style={styles.progressText}>
-          第 {currentIndex + 1} / {speechData.length} 题
+          第 {currentIndex + 1} / {audioItems.length} 题
         </Text>
         {getVoiceLabel()}
       </View>
@@ -318,7 +321,7 @@ export default function DictationPage() {
       {!dictationStarted ? (
         <View style={styles.startSection}>
           <Text style={styles.startTitle}>🎯 听写准备</Text>
-          <Text style={styles.startInfo}>本次听写共 {speechData.length} 个内容</Text>
+          <Text style={styles.startInfo}>本次听写共 {audioItems.length} 个内容</Text>
           <Text style={styles.startInfo}>
             模式：{dictationMode === 'single' ? '单字听写（多组词格式）' : '词语听写（造句模式）'}
           </Text>
@@ -336,7 +339,7 @@ export default function DictationPage() {
         <View style={styles.finishSection}>
           <Text style={styles.finishTitle}>🎉 听写完成</Text>
           <Text style={styles.finishInfo}>
-            你掌握了 {knownWords} / {speechData.length} 个内容
+            你掌握了 {knownWords} / {audioItems.length} 个内容
           </Text>
           <TouchableOpacity
             style={styles.returnButton}
@@ -357,8 +360,8 @@ export default function DictationPage() {
                 {isSpeaking ? '🔊 正在播放...' : '🔊 再听一遍'}
               </Text>
             </TouchableOpacity>
-            {currentSpeech && (
-              <Text style={styles.exampleText}>{currentSpeech.speechText}</Text>
+            {currentAudio && (
+              <Text style={styles.exampleText}>{currentAudio.speechText}</Text>
             )}
           </View>
 

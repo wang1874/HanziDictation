@@ -1,10 +1,11 @@
 import { audioCache } from './audioCacheService';
 
 const CHAT_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
-const TTS_API_URL = 'https://openspeech.bytedance.com/api/v1/tts';
+const TTS_API_URL = 'https://openspeech.bytedance.com/api/v3/tts/unidirectional';
 const DEFAULT_MODEL = 'doubao-seed-2-0-code-preview-260215';
-const TTS_ACCESS_TOKEN = 'zPkdziOzNxMFoslkYxMa28wDZE6v';
-const TTS_CLUSTER_ID = 'volcano_tts';
+const TTS_ACCESS_TOKEN = 'zPKkzlOtXMFoslkYxKaZz8wilD26Jv';
+const TTS_APPID = '3740050812';
+const TTS_RESOURCE_ID = 'seed-tts-1.0';
 
 interface DoubaoConfig {
   apiKey?: string;
@@ -46,19 +47,14 @@ export async function generateBatchDictation(
     const intro = '小朋友们，准备好了吗？让我们开始听写吧！';
     const ending = '今天的听写就到这里，写完记得再检查一遍哦！你们真棒！';
 
-    const items: DictationItem[] = [];
+    const promises = words.map(async (word) => {
+      const speechText = mode === 'single' 
+        ? await generateSingleWordSpeech(word)
+        : await generateDictationExample(word, grade);
+      return { word, speechText };
+    });
 
-    if (mode === 'single') {
-      for (const word of words) {
-        const speechText = await generateSingleWordSpeech(word);
-        items.push({ word, speechText });
-      }
-    } else {
-      for (const word of words) {
-        const speechText = await generateDictationExample(word, grade);
-        items.push({ word, speechText });
-      }
-    }
+    const items = await Promise.all(promises);
 
     return {
       intro,
@@ -258,96 +254,121 @@ function getLocalFallbackExample(word: string): string {
   return `${word}，这个词怎么写`;
 }
 
-export async function synthesizeSpeech(text: string): Promise<ArrayBuffer | null> {
-  const hasCache = await audioCache.hasCache(text);
-  if (hasCache) {
-    console.log('[豆包TTS] 使用缓存音频:', text);
-    const cachePath = await audioCache.getAudio(text);
-    if (cachePath) {
-      try {
-        const base64 = await (await fetch(`data:audio/mp3;base64,${await fetch(cachePath).then(r => r.text())}`)).text();
-        const response = await fetch(cachePath);
-        const blob = await response.blob();
-        const buffer = await blob.arrayBuffer();
-        return buffer;
-      } catch (error) {
-        console.error('[豆包TTS] 读取缓存失败:', error);
-      }
-    }
-  }
-
-  if (!TTS_ACCESS_TOKEN) {
-    console.log('[豆包TTS] 未配置Access Token，无法使用豆包TTS');
-    return null;
+export async function synthesizeSpeech(text: string): Promise<{ success: boolean; buffer?: ArrayBuffer; error?: string; details?: any }> {
+  if (!TTS_ACCESS_TOKEN || !TTS_APPID) {
+    return { success: false, error: '未配置Access Token或App ID' };
   }
 
   try {
-    console.log('[豆包TTS] 调用TTS API，输入:', text);
+    console.log('[豆包TTS] 调用TTS V3 API，输入:', text);
+    const reqid = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const requestBody = {
+      user: {
+        uid: 'user001'
+      },
+      req_params: {
+        text: text,
+        speaker: 'BV001_streaming',
+        audio_params: {
+          format: 'mp3',
+          sample_rate: 24000
+        }
+      }
+    };
+    
+    console.log('[豆包TTS] 请求体:', JSON.stringify(requestBody, null, 2));
     
     const response = await fetch(TTS_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': TTS_ACCESS_TOKEN,
+        'X-Api-App-Id': TTS_APPID,
+        'X-Api-Access-Key': TTS_ACCESS_TOKEN,
+        'X-Api-Resource-Id': TTS_RESOURCE_ID,
+        'X-Api-Request-Id': reqid
       },
-      body: JSON.stringify({
-        app: {
-          cluster: TTS_CLUSTER_ID,
-        },
-        user: {
-          uid: 'user001',
-        },
-        audio: {
-          voice_type: 'BV001',
-          encoding: 'mp3',
-          speed_ratio: 1.0,
-          volume_ratio: 1.0,
-          pitch_ratio: 1.0,
-        },
-        request: {
-          reqid: `req-${Date.now()}`,
-          text: text,
-          operation: 'query',
-        },
-      }),
+      body: JSON.stringify(requestBody),
     });
+
+    console.log('[豆包TTS] 响应状态:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[豆包TTS] TTS请求失败:', response.status, errorText);
-      return null;
+      return { success: false, error: `HTTP ${response.status}`, details: errorText };
     }
 
-    const data = await response.json();
+    // 处理流式响应
+    const reader = response.body?.getReader();
+    if (!reader) {
+      return { success: false, error: '无法读取响应流' };
+    }
+
+    let audioData: Uint8Array[] = [];
+    const decoder = new TextDecoder();
+    let buffer = '';
     
-    if (data.code === 3000 && data.data && typeof data.data === 'string') {
-      const base64Data = data.data;
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        
+        try {
+          const data = JSON.parse(line);
+          console.log('[豆包TTS] 收到响应片段:', JSON.stringify(data, null, 2));
+          
+          if (data.code === 0 && data.data && typeof data.data === 'string') {
+            const base64Data = data.data;
+            const byteCharacters = atob(base64Data);
+            const byteArray = new Uint8Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteArray[i] = byteCharacters.charCodeAt(i);
+            }
+            audioData.push(byteArray);
+          } else if (data.code !== 0) {
+              console.error('[豆包TTS] 响应错误:', data.code, data.message);
+              return { success: false, error: `错误码 ${data.code}`, details: data.message };
+          }
+        } catch (e) {
+          console.warn('[豆包TTS] 解析行失败:', line, e);
+        }
       }
-      const byteArray = new Uint8Array(byteNumbers);
-      const buffer = byteArray.buffer;
+    }
+    
+    if (audioData.length > 0) {
+      const totalLength = audioData.reduce((sum, arr) => sum + arr.length, 0);
+      const finalArray = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const arr of audioData) {
+        finalArray.set(arr, offset);
+        offset += arr.length;
+      }
       
+      const bufferResult = finalArray.buffer;
       console.log('[豆包TTS] 合成成功，保存到缓存');
-      await audioCache.saveAudio(text, buffer);
+      await audioCache.saveAudio(text, bufferResult);
       
-      return buffer;
+      return { success: true, buffer: bufferResult };
     } else {
-      console.error('[豆包TTS] 响应错误:', data.code, data.message);
-      return null;
+      return { success: false, error: '没有收到音频数据' };
     }
   } catch (error: any) {
     console.error('[豆包TTS] TTS失败:', error.message || error);
-    return null;
+    return { success: false, error: error.message || '未知错误', details: error };
   }
 }
 
 export async function synthesizeAndCache(text: string): Promise<string | null> {
-  const buffer = await synthesizeSpeech(text);
-  if (buffer) {
-    const cachePath = await audioCache.saveAudio(text, buffer);
+  const result = await synthesizeSpeech(text);
+  if (result.success && result.buffer) {
+    const cachePath = await audioCache.saveAudio(text, result.buffer);
     return cachePath;
   }
   return null;
@@ -359,7 +380,8 @@ export function getCurrentConfig() {
     apiKey: config.apiKey,
     model: config.model,
     ttsAccessToken: TTS_ACCESS_TOKEN,
-    ttsClusterId: TTS_CLUSTER_ID,
+    ttsAppId: TTS_APPID,
+    ttsResourceId: TTS_RESOURCE_ID,
     chatUrl: CHAT_API_URL,
     ttsUrl: TTS_API_URL,
   };

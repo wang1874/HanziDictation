@@ -15,7 +15,6 @@ import { Word } from '../src/types';
 import { generateBatchDictation, audioCache } from '../src/services/doubaoService';
 import { Audio } from 'expo-av';
 import { pinyinMap } from '../src/utils/pinyinMap';
-import * as FileSystem from 'expo-file-system';
 
 type DictationMode = 'single' | 'phrase';
 
@@ -48,9 +47,11 @@ export default function DictationPage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [dictationStarted, setDictationStarted] = useState(false);
   const [dictationFinished, setDictationFinished] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   
   const dingSoundRef = useRef<Audio.Sound | null>(null);
   const isPlayingRef = useRef(false);
+  const audioReadyRef = useRef(false);
 
   const playLocalAudio = useCallback(async (audioPath: string) => {
     try {
@@ -99,12 +100,17 @@ export default function DictationPage() {
   }, [speakOnce]);
 
   const synthesizeAndCache = useCallback(async (text: string): Promise<string | null> => {
-    console.log('[听写] 合成并缓存:', text);
-    const { synthesizeSpeech } = await import('../src/services/doubaoService');
-    const buffer = await synthesizeSpeech(text);
+    const cachePath = await audioCache.getAudio(text);
+    if (cachePath) {
+      console.log('[音频缓存] 命中缓存:', text);
+      return cachePath;
+    }
+
+    console.log('[音频合成] 合成:', text);
+    const { synthesizeAndCache: doubaoSynthesizeAndCache } = await import('../src/services/doubaoService');
+    const path = await doubaoSynthesizeAndCache(text);
     
-    if (buffer) {
-      const path = await audioCache.saveAudio(text, buffer);
+    if (path) {
       return path;
     }
     return null;
@@ -114,25 +120,41 @@ export default function DictationPage() {
     setIsLoadingAudio(true);
     console.log('[听写] 开始预加载所有音频...');
     
-    const newItems: AudioItem[] = [];
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      console.log(`[听写] 处理第 ${i + 1}/${items.length} 项:`, item.word);
-      
+    const totalItems = items.length + 2;
+    let completed = 0;
+
+    const processItem = async (item: AudioItem): Promise<AudioItem> => {
       const audioPath = await synthesizeAndCache(item.speechText);
-      newItems.push({ ...item, audioPath: audioPath || undefined });
-    }
-    
-    console.log('[听写] 合成开场白:', intro);
-    const introPath = await synthesizeAndCache(intro);
-    setIntroAudioPath(introPath || '');
-    
-    console.log('[听写] 合成结局语:', ending);
-    const endingPath = await synthesizeAndCache(ending);
-    setEndingAudioPath(endingPath || '');
-    
-    setAudioItems(newItems);
+      completed++;
+      setLoadingProgress(Math.round((completed / totalItems) * 100));
+      return { ...item, audioPath: audioPath || undefined };
+    };
+
+    const processIntro = async (): Promise<string> => {
+      const path = await synthesizeAndCache(intro);
+      completed++;
+      setLoadingProgress(Math.round((completed / totalItems) * 100));
+      return path || '';
+    };
+
+    const processEnding = async (): Promise<string> => {
+      const path = await synthesizeAndCache(ending);
+      completed++;
+      setLoadingProgress(Math.round((completed / totalItems) * 100));
+      return path || '';
+    };
+
+    const [introPath, endingPath, ...processedItems] = await Promise.all([
+      processIntro(),
+      processEnding(),
+      ...items.map(item => processItem(item)),
+    ]);
+
+    setIntroAudioPath(introPath);
+    setEndingAudioPath(endingPath);
+    setAudioItems(processedItems);
     setIsLoadingAudio(false);
+    audioReadyRef.current = true;
     console.log('[听写] 音频预加载完成！');
   }, [synthesizeAndCache]);
 
@@ -197,18 +219,24 @@ export default function DictationPage() {
       const selected = shuffled.slice(0, Math.min(10, shuffled.length));
       setDictationItems(selected);
       
+      console.log('[听写] 开始并行加载数据和音频...');
+      
       const { generateBatchDictation } = await import('../src/services/doubaoService');
-      const result = await generateBatchDictation(
-        selected.map(w => w.text),
-        modeValue as DictationMode,
-        gradeNum
-      );
+      
+      const [result] = await Promise.all([
+        generateBatchDictation(
+          selected.map(w => w.text),
+          modeValue as DictationMode,
+          gradeNum
+        ),
+      ]);
       
       if (result) {
+        setIsLoading(false);
         await preloadAllAudio(result.items, result.intro, result.ending);
+      } else {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
     
     loadData();
@@ -282,9 +310,6 @@ export default function DictationPage() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#8B0000" />
           <Text style={styles.loadingText}>正在准备听写内容...</Text>
-          {isLoadingAudio && (
-            <Text style={styles.loadingSubText}>正在合成语音，请稍候</Text>
-          )}
         </View>
       </SafeAreaView>
     );
@@ -325,6 +350,15 @@ export default function DictationPage() {
           <Text style={styles.startInfo}>
             模式：{dictationMode === 'single' ? '单字听写（多组词格式）' : '词语听写（造句模式）'}
           </Text>
+          
+          {isLoadingAudio && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#8B0000" />
+              <Text style={styles.loadingPercent}>{loadingProgress}%</Text>
+              <Text style={styles.loadingHint}>正在合成语音...</Text>
+            </View>
+          )}
+          
           <TouchableOpacity
             style={styles.startButton}
             onPress={startDictation}
@@ -418,11 +452,6 @@ const styles = StyleSheet.create({
     color: '#8B0000',
     fontWeight: 'bold',
   },
-  loadingSubText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#999',
-  },
   header: {
     padding: 16,
     backgroundColor: '#8B0000',
@@ -493,6 +522,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginBottom: 8,
+  },
+  loadingOverlay: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  loadingPercent: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#8B0000',
+    marginTop: 8,
+  },
+  loadingHint: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
   },
   startButton: {
     backgroundColor: '#8B0000',

@@ -58,13 +58,13 @@ export default function DebugPage() {
 
     try {
       addLog('正在调用豆包TTS API...');
-      const audioBuffer = await synthesizeSpeech(inputText);
+      const result = await synthesizeSpeech(inputText);
       
-      if (audioBuffer) {
-        addLog(`✅ 成功! 音频大小: ${audioBuffer.byteLength} bytes`);
+      if (result.success && result.buffer) {
+        addLog(`✅ 成功! 音频大小: ${result.buffer.byteLength} bytes`);
         
         addLog('正在播放音频...');
-        const blob = new Blob([audioBuffer], { type: 'audio/mp3' });
+        const blob = new Blob([result.buffer], { type: 'audio/mp3' });
         const uri = URL.createObjectURL(blob);
         
         const { sound } = await Audio.Sound.createAsync(
@@ -85,7 +85,10 @@ export default function DebugPage() {
         
         Alert.alert('成功', 'TTS测试成功，音频已播放（豆包语音）');
       } else {
-        addLog('❌ 豆包TTS失败，尝试系统语音...');
+        addLog(`❌ 豆包TTS失败: ${result.error}`);
+        if (result.details) {
+          addLog(`详细信息: ${JSON.stringify(result.details, null, 2)}`);
+        }
         
         addLog('使用系统语音播放...');
         Speech.speak(inputText, {
@@ -94,7 +97,7 @@ export default function DebugPage() {
         });
         
         addLog('系统语音播放完成');
-        Alert.alert('豆包TTS失败', '已切换到系统语音播放');
+        Alert.alert('豆包TTS失败', `错误: ${result.error}\n\n请查看日志获取详细信息`);
       }
     } catch (error: any) {
       addLog(`❌ 失败! 错误: ${error.message || error}`);
@@ -125,13 +128,13 @@ export default function DebugPage() {
       }
 
       addLog('步骤2: 合成语音...');
-      const audioBuffer = await synthesizeSpeech(example);
+      const result = await synthesizeSpeech(example);
       
-      if (audioBuffer) {
-        addLog(`✅ 音频生成成功，大小: ${audioBuffer.byteLength} bytes`);
+      if (result.success && result.buffer) {
+        addLog(`✅ 音频生成成功，大小: ${result.buffer.byteLength} bytes`);
         
         addLog('步骤3: 播放音频(豆包语音)...');
-        const blob = new Blob([audioBuffer], { type: 'audio/mp3' });
+        const blob = new Blob([result.buffer], { type: 'audio/mp3' });
         const uri = URL.createObjectURL(blob);
         
         const { sound } = await Audio.Sound.createAsync(
@@ -152,7 +155,10 @@ export default function DebugPage() {
         
         Alert.alert('成功', `完整流程测试成功!\n例句: ${example}\n使用豆包语音`);
       } else {
-        addLog('❌ 豆包TTS失败，使用系统语音');
+        addLog(`❌ 豆包TTS失败: ${result.error}`);
+        if (result.details) {
+          addLog(`详细信息: ${JSON.stringify(result.details, null, 2)}`);
+        }
         
         addLog('步骤3: 使用系统语音播放...');
         Speech.speak(example, {
@@ -201,7 +207,13 @@ export default function DebugPage() {
     const config = getCurrentConfig();
     Alert.alert(
       '当前配置',
-      `API密钥: ${config.apiKey || '未配置'}\n模型: ${config.model}\nChat API: ${config.chatUrl}\nTTS API: ${config.ttsUrl}`,
+      `API密钥: ${config.apiKey ? '已配置' : '未配置'}\n` +
+      `模型: ${config.model}\n` +
+      `Chat API: ${config.chatUrl}\n` +
+      `TTS API: ${config.ttsUrl}\n` +
+      `TTS Access Token: ${config.ttsAccessToken ? '已配置' : '未配置'}\n` +
+      `TTS App ID: ${config.ttsAppId}\n` +
+      `TTS Resource ID: ${config.ttsResourceId}`,
       [{ text: '确定' }]
     );
   };
@@ -272,12 +284,19 @@ export default function DebugPage() {
       </View>
 
       <View style={styles.infoBox}>
+        <Text style={styles.infoTitle}>ℹ️ 豆包TTS V3 配置说明</Text>
+        <Text style={styles.infoText}>• API版本：V3 (HTTP Chunked单向流式)</Text>
+        <Text style={styles.infoText}>• 需要在火山引擎控制台获取：</Text>
+        <Text style={styles.infoText}>  1. App ID (应用标识)</Text>
+        <Text style={styles.infoText}>  2. Access Token (应用令牌)</Text>
+        <Text style={styles.infoText}>  3. Resource ID (资源ID：seed-tts-1.0/2.0)</Text>
+        <Text style={styles.infoText}>• 鉴权方式：X-Api-App-Id + X-Api-Access-Key + X-Api-Resource-Id</Text>
+        <Text style={styles.infoText}>• 免费音色：BV001_streaming, BV002_streaming</Text>
+        <Text style={styles.infoText}>• 需确保TTS服务已开通且有配额</Text>
         <Text style={styles.infoTitle}>ℹ️ 常见问题</Text>
-        <Text style={styles.infoText}>• 如果Chat API返回"怎么写"，说明豆包API未正常工作</Text>
-        <Text style={styles.infoText}>• TTS失败通常是因为API密钥没有开通TTS权限</Text>
-        <Text style={styles.infoText}>• 需要在火山引擎控制台开通相关服务</Text>
-        <Text style={styles.infoText}>• 需要配置有效的API密钥才能使用豆包服务</Text>
-        <Text style={styles.infoText}>• 未缴费用户可能无法使用API服务</Text>
+        <Text style={styles.infoText}>• 错误码0表示成功</Text>
+        <Text style={styles.infoText}>• 鉴权失败检查AppId和Access Token是否正确</Text>
+        <Text style={styles.infoText}>• "quota exceeded"表示配额用完了</Text>
       </View>
 
       <View style={styles.logSection}>

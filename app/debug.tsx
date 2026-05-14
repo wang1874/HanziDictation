@@ -213,7 +213,7 @@ export default function DebugPage() {
       `TTS API: ${config.ttsUrl}\n` +
       `TTS Access Token: ${config.ttsAccessToken ? '已配置' : '未配置'}\n` +
       `TTS App ID: ${config.ttsAppId}\n` +
-      `TTS Resource ID: ${config.ttsResourceId}`,
+      `TTS Cluster ID: ${config.ttsClusterId}`,
       [{ text: '确定' }]
     );
   };
@@ -284,18 +284,18 @@ export default function DebugPage() {
       </View>
 
       <View style={styles.infoBox}>
-        <Text style={styles.infoTitle}>ℹ️ 豆包TTS V3 配置说明</Text>
-        <Text style={styles.infoText}>• API版本：V3 (HTTP Chunked单向流式)</Text>
-        <Text style={styles.infoText}>• 需要在火山引擎控制台获取：</Text>
+        <Text style={styles.infoTitle}>ℹ️ 豆包TTS V1 配置说明</Text>
+        <Text style={styles.infoText}>• API版本：V1 (旧版控制台)</Text>
+        <Text style={styles.infoText}>• 需要在火山引擎旧版控制台获取：</Text>
         <Text style={styles.infoText}>  1. App ID (应用标识)</Text>
         <Text style={styles.infoText}>  2. Access Token (应用令牌)</Text>
-        <Text style={styles.infoText}>  3. Resource ID (资源ID：seed-tts-1.0/2.0)</Text>
-        <Text style={styles.infoText}>• 鉴权方式：X-Api-App-Id + X-Api-Access-Key + X-Api-Resource-Id</Text>
+        <Text style={styles.infoText}>  3. Cluster ID (业务集群)</Text>
+        <Text style={styles.infoText}>• 鉴权方式：Authorization: Bearer;{token}</Text>
         <Text style={styles.infoText}>• 免费音色：BV001_streaming, BV002_streaming</Text>
         <Text style={styles.infoText}>• 需确保TTS服务已开通且有配额</Text>
         <Text style={styles.infoTitle}>ℹ️ 常见问题</Text>
-        <Text style={styles.infoText}>• 错误码0表示成功</Text>
-        <Text style={styles.infoText}>• 鉴权失败检查AppId和Access Token是否正确</Text>
+        <Text style={styles.infoText}>• 错误码3000表示成功</Text>
+        <Text style={styles.infoText}>• 45000010鉴权失败：检查AppId、Token、Cluster是否匹配</Text>
         <Text style={styles.infoText}>• "quota exceeded"表示配额用完了</Text>
       </View>
 
